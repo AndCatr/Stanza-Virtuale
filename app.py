@@ -35,23 +35,20 @@ def home():
 def ingresso():
     codice_accesso = request.form.get('codice_accesso')
 
-    # Controllo che il codice sia abbastanza lungo
     if not codice_accesso or len(codice_accesso) < 7:
         return "Codice non valido!", 403
 
-    # Estrai il codice della stanza rimuovendo i primi due caratteri
     codice_stanza = codice_accesso[2:]
 
-  # 🔹 STAMPE DI DEBUG 🔹
+    # 🔹 Debug per verificare il problema
     print("Codice inserito:", codice_accesso)
     print("Codice stanza estratto:", codice_stanza)
     print("Stanze disponibili:", stanze.keys())
 
-    # Verifica se la stanza esiste
     if codice_stanza not in stanze:
+        print("❌ Errore: stanza non trovata!")
         return "Stanza non trovata!", 404
 
-    # Determina il ruolo in base al prefisso
     if codice_accesso.startswith('59'):
         session['ruolo'] = 'Penelope'
     elif codice_accesso.startswith('33'):
