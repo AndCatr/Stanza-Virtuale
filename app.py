@@ -112,7 +112,11 @@ if request.method == 'POST' and 'messaggio' in request.form:
     c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
     conn.commit()
     conn.close()
-
+    
+    print(f"Messaggio ricevuto: {messaggio}")
+    print(f"Chat prima dell'aggiornamento: {chat}")
+    print(f"Chat dopo l'aggiornamento: {chat}")
+    
     # Gestione numeri di telefono
     if request.method == 'POST' and 'numero' in request.form:
         numero = request.form['numero']
