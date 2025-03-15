@@ -28,14 +28,16 @@ def home():
     if request.method == 'POST':
         codice = genera_codice_stanza()
         session['codice'] = codice  # Salva il codice della stanza nella sessione
-        
+
         # Inserisci la nuova stanza nel database
         with sqlite3.connect("stanze.db") as conn:
             c = conn.cursor()
             c.execute("INSERT INTO stanze (codice, chat, numero_penelope, numero_eric) VALUES (?, '', '', '')", (codice,))
             conn.commit()
 
-        return render_template('home.html', codice=codice)
+        return render_template('home.html', codice=codice)  # Passa il codice
+
+    return render_template('home.html', codice=None)  # codice=None se la pagina è appena caricata
 
     return render_template('home.html', codice=None)
 
