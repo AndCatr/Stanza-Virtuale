@@ -14,31 +14,29 @@ def genera_codice_stanza():
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    if 'codice' not in session:
-        session['codice'] = genera_codice_stanza()  # Genera un codice stanza alla prima visita
-    
-    codice = session['codice']  # Recupera il codice dalla sessione
-
-    # Crea la stanza se non esiste
-    if codice not in stanze:
+    if request.method == 'POST':
+        codice = genera_codice_stanza()
+        session['codice'] = codice  # Salva il codice della stanza nella sessione
+        
+        # Crea la stanza se non esiste
         stanze[codice] = {"chat": [], "numeri": {"Penelope": "", "Eric": ""}}
 
-    return render_template('home.html', codice=codice)
+        return render_template('home.html', codice=codice)
+
+    return render_template('home.html', codice=None)
 
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
     codice_accesso = request.form.get('codice_accesso')
     
-    # Verifica se il codice di accesso ha la lunghezza corretta (2 prefisso + 6 codice stanza)
-    if len(codice_accesso) != 8 or not codice_accesso[2:].isalnum():
+    if not codice_accesso or len(codice_accesso) < 8:
         return "Codice non valido!", 403
 
-    # Estrai la parte del codice stanza
-    codice_stanza = codice_accesso[2:]
+    codice_stanza = codice_accesso[2:]  # Estrai il codice della stanza
 
-    # Controlla che il codice della stanza sia quello generato
-    if codice_stanza != session.get('codice'):
-        return "Codice di accesso non valido!", 403
+    # Controlla se la stanza esiste
+    if codice_stanza not in stanze:
+        return "Stanza non trovata!", 404
 
     # Determina il personaggio in base al prefisso
     if codice_accesso.startswith('59'):
@@ -48,11 +46,12 @@ def ingresso():
     else:
         return "Codice di accesso non valido!", 403
 
+    session['codice'] = codice_stanza  # Salva la stanza nella sessione
     return redirect(url_for('stanza', codice=codice_stanza))
 
 @app.route('/stanza/<codice>', methods=['GET', 'POST'])
 def stanza(codice):
-    ruolo = session.get('ruolo', 'Sconosciuto')
+    ruolo = session.get('ruolo')
 
     if codice not in stanze:
         return "Stanza non trovata!", 404
