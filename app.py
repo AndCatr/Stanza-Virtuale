@@ -12,11 +12,39 @@ app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
 def genera_codice_stanza():
     return ''.join(random.choices(string.digits, k=4))  # Genera una stanza a 4 cifre
 
+# Funzione per inizializzare il database e creare la tabella se non esiste
+def inizializza_database():
+    with sqlite3.connect('stanza_virtuale.db') as conn:
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS stanze (
+                codice TEXT PRIMARY KEY,
+                stato TEXT DEFAULT 'aperta',
+                uomo_ha_accesso BOOLEAN DEFAULT 0,
+                donna_ha_accesso BOOLEAN DEFAULT 0,
+                numero_uomo TEXT DEFAULT '',
+                numero_donna TEXT DEFAULT '',
+                chat TEXT DEFAULT '',
+                timestamp INTEGER
+            )
+        ''')
+        conn.commit()
+
+# Inizializza il database all'avvio
+inizializza_database()
+
 @app.route('/', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
         codice_stanza = genera_codice_stanza()  # Genera un codice stanza univoco (es: 1212)
         session['codice_stanza'] = codice_stanza
+
+        with sqlite3.connect('stanza_virtuale.db') as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO stanze (codice, timestamp) VALUES (?, ?)", 
+                      (codice_stanza, int(time.time())))
+            conn.commit()
+
         return render_template('home.html', codice_stanza=codice_stanza)  # Mostra il codice della stanza
     return render_template('home.html')
 
@@ -27,7 +55,7 @@ def ingresso():
     if len(codice_ingresso) < 6:
         return "Codice non valido!", 403
 
-    codice_prefix = codice_ingresso[:2]  # Prendi i primi due numeri
+    codice_prefix = codice_ingresso[:2]  # Prendi i primi due numeri (59 o 33)
     codice_stanza = codice_ingresso[2:]  # Prendi gli ultimi quattro numeri
 
     with sqlite3.connect('stanza_virtuale.db') as conn:
@@ -59,7 +87,7 @@ def stanza(codice):
     if not stanza:
         return "Codice non valido!", 403
 
-    stato, uomo_ha_accesso, donna_ha_accesso, numero_uomo, numero_donna, chat, _ = stanza[1:]
+    _, stato, uomo_ha_accesso, donna_ha_accesso, numero_uomo, numero_donna, chat, _ = stanza
     
     if chat is None:
         chat = ""
