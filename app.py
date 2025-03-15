@@ -3,14 +3,14 @@ import random
 import string
 
 app = Flask(__name__)
-app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
+app.secret_key = 'chiave_super_segreta'
 
 # Simuliamo un database con un dizionario
 stanze = {}
 
-# Funzione per generare un codice stanza casuale (alfanumerico di 6 caratteri)
+# Funzione per generare un codice stanza casuale
 def genera_codice_stanza():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6)) 
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -18,12 +18,13 @@ def home():
         codice = genera_codice_stanza()
         session['codice'] = codice  # Salva il codice della stanza nella sessione
         
-        # Crea la stanza se non esiste
+        # Crea la stanza
         stanze[codice] = {"chat": [], "numeri": {"Penelope": "", "Eric": ""}}
 
-        return render_template('home.html', codice=codice)  # PASSA IL CODICE ALLA PAGINA
+        # PASSA IL CODICE ALLA PAGINA HTML
+        return render_template('home.html', codice=codice)
 
-    return render_template('home.html', codice=None)  # codice=None se la pagina è appena caricata
+    return render_template('home.html', codice=None)
 
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
@@ -33,7 +34,7 @@ def ingresso():
     if not codice_accesso or len(codice_accesso) < 7:
         return "Codice non valido!", 403
 
-    # Estrai il codice della stanza rimuovendo i primi due caratteri (prefisso)
+    # Estrai il codice della stanza rimuovendo i primi due caratteri
     codice_stanza = codice_accesso[2:]
 
     # Verifica se la stanza esiste
@@ -79,3 +80,4 @@ def stanza(codice):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
+
