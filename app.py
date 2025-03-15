@@ -1,32 +1,44 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import random
 import string
+import sqlite3
 
 app = Flask(__name__)
-app.config['SESSION_TYPE'] = 'filesystem'
-app.secret_key = 'chiave_super_segreta'
-
-# Simuliamo un database con un dizionario
-stanze = {}
+app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
 
 # Funzione per generare un codice stanza casuale
 def genera_codice_stanza():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
+# Inizializza il database
+def init_db():
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS stanze (
+                    codice TEXT PRIMARY KEY,
+                    chat TEXT,
+                    numero_penelope TEXT,
+                    numero_eric TEXT
+                 )''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
 @app.route('/', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
         codice = genera_codice_stanza()
-        session['codice'] = codice  # Salva il codice della stanza nella sessione
-        
-        # 🔹 Assicuriamoci di salvare la stanza correttamente
-        print("Creazione stanza:", codice)  # Debug
-        stanze[codice] = {"chat": [], "numeri": {"Penelope": "", "Eric": ""}}
-        print("Stanze attuali:", stanze.keys())  # Debug
-        
-        # Crea la stanza
-        stanze[codice] = {"chat": [], "numeri": {"Penelope": "", "Eric": ""}}
+        session['codice'] = codice
 
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        c.execute("INSERT INTO stanze (codice, chat, numero_penelope, numero_eric) VALUES (?, ?, ?, ?)",
+                  (codice, "", "", ""))
+        conn.commit()
+        conn.close()
+
+        print("Creazione stanza:", codice)  # Debug
         return render_template('home.html', codice=codice)
 
     return render_template('home.html', codice=None)
@@ -40,12 +52,16 @@ def ingresso():
 
     codice_stanza = codice_accesso[2:]
 
-    # 🔹 Debug per verificare il problema
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT codice FROM stanze WHERE codice = ?", (codice_stanza,))
+    stanza = c.fetchone()
+    conn.close()
+
     print("Codice inserito:", codice_accesso)
     print("Codice stanza estratto:", codice_stanza)
-    print("Stanze disponibili:", stanze.keys())
-
-    if codice_stanza not in stanze:
+    
+    if not stanza:
         print("❌ Errore: stanza non trovata!")
         return "Stanza non trovata!", 404
 
@@ -56,7 +72,6 @@ def ingresso():
     else:
         return "Codice di accesso non valido!", 403
 
-    # Salva il codice della stanza nella sessione
     session['codice'] = codice_stanza
     return redirect(url_for('stanza', codice=codice_stanza))
 
@@ -64,25 +79,48 @@ def ingresso():
 def stanza(codice):
     ruolo = session.get('ruolo')
 
-    if codice not in stanze:
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT chat, numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
         return "Stanza non trovata!", 404
+
+    chat, numero_penelope, numero_eric = stanza
 
     # Gestione chat
     if request.method == 'POST' and 'messaggio' in request.form:
         messaggio = request.form['messaggio']
-        stanze[codice]["chat"].append((ruolo, messaggio))
+        chat += f"{ruolo}: {messaggio}\n"
+
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
+        conn.commit()
+        conn.close()
 
     # Gestione numeri di telefono
     if request.method == 'POST' and 'numero' in request.form:
         numero = request.form['numero']
-        stanze[codice]["numeri"][ruolo] = numero
+
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        if ruolo == 'Penelope':
+            c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
+        else:
+            c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
+        conn.commit()
+        conn.close()
 
     return render_template(
         'stanza.html',
         codice=codice,
         ruolo=ruolo,
-        chat=stanze[codice]["chat"],
-        numeri=stanze[codice]["numeri"]
+        chat=chat.split("\n"),
+        numero_penelope=numero_penelope,
+        numero_eric=numero_eric
     )
 
 if __name__ == '__main__':
