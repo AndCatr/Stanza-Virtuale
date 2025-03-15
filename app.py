@@ -90,7 +90,7 @@ def stanza(codice):
 
     chat, numero_penelope, numero_eric = stanza
 
-    # **Gestione chat** (Ora è indentato correttamente)
+    # Gestione chat
     if request.method == 'POST' and 'messaggio' in request.form:
         messaggio = request.form['messaggio']
         ruolo = session.get('ruolo', '')
@@ -100,7 +100,7 @@ def stanza(codice):
         c = conn.cursor()
         c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
         result = c.fetchone()
-        
+
         if result:
             chat = result[0] if result[0] else ""  # Se la chat è None, inizializzala come stringa vuota
         else:
@@ -112,12 +112,8 @@ def stanza(codice):
         c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
         conn.commit()
         conn.close()
-        
-        print(f"Messaggio ricevuto: {messaggio}")
-        print(f"Chat prima dell'aggiornamento: {chat}")
-        print(f"Chat dopo l'aggiornamento: {chat}")
 
-    # **Gestione numeri di telefono**
+    # Gestione numeri di telefono
     if request.method == 'POST' and 'numero' in request.form:
         numero = request.form['numero']
 
@@ -130,14 +126,15 @@ def stanza(codice):
         conn.commit()
         conn.close()
 
-   return render_template(
-    'stanza.html',
-    codice=codice,
-    ruolo=ruolo,
-    chat=[riga for riga in chat.split("\n") if riga.strip()],  # Evita righe vuote
-    numero_penelope=numero_penelope,
-    numero_eric=numero_eric
-)
+    # **Qui potrebbe esserci il problema di indentazione**
+    return render_template(
+        'stanza.html',
+        codice=codice,
+        ruolo=ruolo,
+        chat=[riga for riga in chat.split("\n") if riga.strip()],  # Evita righe vuote
+        numero_penelope=numero_penelope,
+        numero_eric=numero_eric
+    )
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
