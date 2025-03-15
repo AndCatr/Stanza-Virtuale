@@ -11,7 +11,9 @@
     
     <h2>Chat</h2>
     <div id="chatbox">
-        <pre>{{ chat }}</pre>
+        {% for riga in chat.split("\n") %}
+            <p><strong>{{ 'Penelope' if 'F' in riga else 'Eric' }}:</strong> {{ riga.replace('F:', '').replace('M:', '') }}</p>
+        {% endfor %}
     </div>
 
     <form method="post">
@@ -20,9 +22,9 @@
         <button type="submit">Invia</button>
     </form>
 
-    <h2>Inserisci il tuo numero</h2>
+    <h2>Inserisci il tuo numero di telefono</h2>
     <form method="post">
-        <label for="numero">Numero:</label>
+        <label for="numero">{{ 'Inserisci il tuo numero di telefono Penelope:' if session.get('ruolo') == 'F' else 'Inserisci il tuo numero di telefono Eric:' }}</label>
         <input type="text" name="numero" required>
         <button type="submit">Invia</button>
     </form>
