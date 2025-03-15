@@ -3,6 +3,7 @@ import random
 import string
 
 app = Flask(__name__)
+app.config['SESSION_TYPE'] = 'filesystem'
 app.secret_key = 'chiave_super_segreta'
 
 # Simuliamo un database con un dizionario
