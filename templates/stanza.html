@@ -56,5 +56,25 @@
         <input type="text" name="numero" required>
         <button type="submit">Invia</button>
     </form>
+    <script>
+    function aggiornaChat() {
+        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+        .then(response => response.json())
+        .then(data => {
+            let chatDiv = document.getElementById("chat");
+            chatDiv.innerHTML = ""; // Svuota la chat per aggiornarla
+
+            data.chat.forEach(msg => {
+                let p = document.createElement("p");
+                p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+                chatDiv.appendChild(p);
+            });
+        })
+        .catch(error => console.error("Errore aggiornamento chat:", error));
+    }
+
+    // Aggiorna la chat ogni 3 secondi
+    setInterval(aggiornaChat, 3000);
+</script>
 </body>
 </html>
