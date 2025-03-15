@@ -3,30 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stanza Virtuale</title>
+    <title>Stanza Virtuale: {{ codice }}</title>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
-    <p>Stato: {{ stato }}</p>
-    
+    <p>Stato: <strong>aperta</strong></p>
+
     <h2>Chat</h2>
-    <div id="chatbox">
-        {% for riga in chat.split("\n") %}
-            <p><strong>{{ 'Penelope' if 'F:' in riga else 'Eric' }}:</strong> {{ riga.replace('F:', '').replace('M:', '') }}</p>
+    <div id="chat">
+        {% for messaggio in chat %}
+            <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
         {% endfor %}
     </div>
 
-    <form method="post">
-        <label for="chat">Messaggio:</label>
-        <input type="text" name="chat" required>
+    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+        <label for="messaggio">Messaggio:</label>
+        <input type="text" name="messaggio" required>
         <button type="submit">Invia</button>
     </form>
 
-    <h2>Inserisci il tuo numero di telefono</h2>
-    <form method="post">
-        <label for="numero">
-            {{ 'Inserisci il tuo numero di telefono Penelope:' if session.get('ruolo') == 'F' else 'Inserisci il tuo numero di telefono Eric:' }}
-        </label>
+    <h2>Inserisci il tuo numero</h2>
+    {% if ruolo == "Penelope" %}
+        <p><strong>Inserisci il tuo numero di telefono, Penelope:</strong></p>
+    {% elif ruolo == "Eric" %}
+        <p><strong>Inserisci il tuo numero di telefono, Eric:</strong></p>
+    {% endif %}
+
+    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+        <label for="numero">Numero:</label>
         <input type="text" name="numero" required>
         <button type="submit">Invia</button>
     </form>
