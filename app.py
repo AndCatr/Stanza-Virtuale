@@ -1,16 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-import sqlite3
 import random
 import string
-import time
-from threading import Thread
 
 app = Flask(__name__)
 app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
 
-# Funzione per generare un codice stanza casuale (solo numeri)
+# Funzione per generare un codice stanza casuale (alfanumerico di 6 caratteri)
 def genera_codice_stanza():
-    return ''.join(random.choices(string.digits, k=4))  # Codice stanza di 4 cifre
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6)) 
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -24,12 +21,16 @@ def home():
 def ingresso():
     codice_accesso = request.form.get('codice_accesso')
     
-    # Verifica che il codice sia nel formato corretto (59XXXX per Penelope, 33XXXX per Eric)
-    if len(codice_accesso) != 6 or not codice_accesso.isdigit():
+    # Verifica se il codice di accesso ha la lunghezza corretta (2 prefisso + 6 codice stanza)
+    if len(codice_accesso) != 8 or not codice_accesso[2:].isalnum():
         return "Codice non valido!", 403
 
     # Estrai la parte del codice stanza
     codice_stanza = codice_accesso[2:]
+
+    # Controlla che il codice della stanza sia quello generato
+    if codice_stanza != session.get('codice'):
+        return "Codice di accesso non valido!", 403
 
     # Determina il personaggio in base al prefisso
     if codice_accesso.startswith('59'):
@@ -41,9 +42,10 @@ def ingresso():
 
     return redirect(url_for('stanza', codice=codice_stanza))
 
-@app.route('/stanza/<codice>', methods=['GET', 'POST'])
+@app.route('/stanza/<codice>', methods=['GET'])
 def stanza(codice):
-    return f"Benvenuto nella stanza {codice}. Sei {session.get('ruolo', 'Sconosciuto')}."
+    ruolo = session.get('ruolo', 'Sconosciuto')
+    return f"Benvenuto nella stanza {codice}. Sei {ruolo}."
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
