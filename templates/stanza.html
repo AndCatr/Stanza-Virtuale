@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
+    <script>
+        function aggiornaChat() {
+            fetch('/aggiorna_chat/{{ codice }}')
+                .then(response => response.json())
+                .then(data => {
+                    let chatDiv = document.getElementById("chat");
+                    chatDiv.innerHTML = "";  // Pulisce la chat prima di ricaricarla
+
+                    data.chat.forEach(messaggio => {
+                        let p = document.createElement("p");
+                        p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
+                        chatDiv.appendChild(p);
+                    });
+                })
+                .catch(error => console.error("Errore aggiornamento chat:", error));
+        }
+
+        // Aggiorna la chat ogni 2 secondi
+        setInterval(aggiornaChat, 2000);
+    </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
