@@ -12,12 +12,39 @@ app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
 def genera_codice_stanza():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
+# **Inizializza il database e crea la tabella se non esiste**
+def init_db():
+    with sqlite3.connect('stanza_virtuale.db') as conn:
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS stanze (
+                        codice TEXT PRIMARY KEY,
+                        stato TEXT,
+                        uomo_ha_accesso BOOLEAN,
+                        donna_ha_accesso BOOLEAN,
+                        numero_uomo TEXT,
+                        numero_donna TEXT,
+                        chat TEXT,
+                        timestamp INTEGER)''')
+        conn.commit()
+
+# Chiamiamo l'inizializzazione del database all'avvio dell'app
+init_db()
+
 @app.route('/', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
         codice = genera_codice_stanza()  # Genera un codice unico
         session['codice'] = codice
+
+        # **Salva il codice stanza nel database**
+        with sqlite3.connect('stanza_virtuale.db') as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO stanze (codice, stato, uomo_ha_accesso, donna_ha_accesso, numero_uomo, numero_donna, chat, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                      (codice, 'aperta', False, False, '', '', '', int(time.time())))
+            conn.commit()
+
         return redirect(url_for('stanza', codice=codice))  # Reindirizza alla stanza
+
     return render_template('home.html')
 
 @app.route('/stanza/<codice>', methods=['GET', 'POST'])
@@ -63,19 +90,5 @@ def stanza(codice):
                 conn.commit()
             return "Stanza chiusa!", 200
 
-    return render_template('stanza.html', stato=stato, uomo_ha_accesso=uomo_ha_accesso, 
-                           donna_ha_accesso=donna_ha_accesso, chat=chat)
-
-# Funzione per autodistruggere stanze dopo 24 ore
-def autodistruzione():
-    while True:
-        time.sleep(3600)  # Controlla ogni ora
-        with sqlite3.connect('stanza_virtuale.db') as conn:
-            c = conn.cursor()
-            c.execute("DELETE FROM stanze WHERE timestamp < ?", (int(time.time()) - 86400,))
-            conn.commit()
-
-Thread(target=autodistruzione, daemon=True).start()
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    return render_template('stanza.html', codice=codice, stato=stato, uomo_ha_accesso=uomo_ha_accesso, 
+                    
