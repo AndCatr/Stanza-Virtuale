@@ -5,6 +5,9 @@ import string
 app = Flask(__name__)
 app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
 
+# Simuliamo un database con un dizionario
+stanze = {}
+
 # Funzione per generare un codice stanza casuale (alfanumerico di 6 caratteri)
 def genera_codice_stanza():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6)) 
@@ -15,7 +18,12 @@ def home():
         session['codice'] = genera_codice_stanza()  # Genera un codice stanza alla prima visita
     
     codice = session['codice']  # Recupera il codice dalla sessione
-    return render_template('home.html', codice=codice)  # Passa il codice al template
+
+    # Crea la stanza se non esiste
+    if codice not in stanze:
+        stanze[codice] = {"chat": [], "numeri": {"Penelope": "", "Eric": ""}}
+
+    return render_template('home.html', codice=codice)
 
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
@@ -42,10 +50,30 @@ def ingresso():
 
     return redirect(url_for('stanza', codice=codice_stanza))
 
-@app.route('/stanza/<codice>', methods=['GET'])
+@app.route('/stanza/<codice>', methods=['GET', 'POST'])
 def stanza(codice):
     ruolo = session.get('ruolo', 'Sconosciuto')
-    return f"Benvenuto nella stanza {codice}. Sei {ruolo}."
+
+    if codice not in stanze:
+        return "Stanza non trovata!", 404
+
+    # Gestione chat
+    if request.method == 'POST' and 'messaggio' in request.form:
+        messaggio = request.form['messaggio']
+        stanze[codice]["chat"].append((ruolo, messaggio))
+
+    # Gestione numeri di telefono
+    if request.method == 'POST' and 'numero' in request.form:
+        numero = request.form['numero']
+        stanze[codice]["numeri"][ruolo] = numero
+
+    return render_template(
+        'stanza.html',
+        codice=codice,
+        ruolo=ruolo,
+        chat=stanze[codice]["chat"],
+        numeri=stanze[codice]["numeri"]
+    )
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
