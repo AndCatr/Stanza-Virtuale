@@ -8,10 +8,6 @@ from threading import Thread
 app = Flask(__name__)
 app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
 
-# Funzione per generare un codice stanza casuale
-def genera_codice_stanza():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-
 # **Inizializza il database e crea la tabella se non esiste**
 def init_db():
     with sqlite3.connect('stanza_virtuale.db') as conn:
@@ -29,6 +25,10 @@ def init_db():
 
 # Chiamiamo l'inizializzazione del database all'avvio dell'app
 init_db()
+
+# Funzione per generare un codice stanza casuale
+def genera_codice_stanza():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
@@ -91,4 +91,18 @@ def stanza(codice):
             return "Stanza chiusa!", 200
 
     return render_template('stanza.html', codice=codice, stato=stato, uomo_ha_accesso=uomo_ha_accesso, 
-                    
+                           donna_ha_accesso=donna_ha_accesso, chat=chat)
+
+# Funzione per autodistruggere stanze dopo 24 ore
+def autodistruzione():
+    while True:
+        time.sleep(3600)  # Controlla ogni ora
+        with sqlite3.connect('stanza_virtuale.db') as conn:
+            c = conn.cursor()
+            c.execute("DELETE FROM stanze WHERE timestamp < ?", (int(time.time()) - 86400,))
+            conn.commit()
+
+Thread(target=autodistruzione, daemon=True).start()
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000)
