@@ -28,11 +28,29 @@ def home():
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
     codice_accesso = request.form.get('codice_accesso')
-    
-    if not codice_accesso or len(codice_accesso) < 8:
+
+    # Controllo che il codice sia abbastanza lungo
+    if not codice_accesso or len(codice_accesso) < 7:
         return "Codice non valido!", 403
 
-    codice_stanza = codice_accesso[2:]  # Estrai il codice della stanza
+    # Estrai il codice della stanza rimuovendo i primi due caratteri (prefisso)
+    codice_stanza = codice_accesso[2:]
+
+   # Verifica se la stanza esiste
+    if codice_stanza not in stanze:
+        return "Stanza non trovata!", 404
+
+    # Determina il ruolo in base al prefisso
+    if codice_accesso.startswith('59'):
+        session['ruolo'] = 'Penelope'
+    elif codice_accesso.startswith('33'):
+        session['ruolo'] = 'Eric'
+    else:
+        return "Codice di accesso non valido!", 403
+
+    # Salva il codice della stanza nella sessione
+    session['codice'] = codice_stanza
+    return redirect(url_for('stanza', codice=codice_stanza))
 
     # Controlla se la stanza esiste
     if codice_stanza not in stanze:
