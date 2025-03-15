@@ -8,101 +8,42 @@ from threading import Thread
 app = Flask(__name__)
 app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
 
-# Funzione per generare un codice stanza casuale (es: "A1B2C3")
+# Funzione per generare un codice stanza casuale (solo numeri)
 def genera_codice_stanza():
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    return ''.join(random.choices(string.digits, k=4))  # Codice stanza di 4 cifre
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
-    codice = None  # Inizializza il codice a None
-    if request.method == 'POST':
-        codice = genera_codice_stanza()  # Genera un codice univoco
-        session['codice_stanza'] = codice  # Salva il codice nella sessione
-        return render_template('home.html', codice=codice)  # Passa il codice alla pagina
-    return render_template('home.html', codice=None)
+    if 'codice' not in session:
+        session['codice'] = genera_codice_stanza()  # Genera un codice stanza alla prima visita
+    
+    codice = session['codice']  # Recupera il codice dalla sessione
+    return render_template('home.html', codice=codice)  # Passa il codice al template
 
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
-    codice_accesso = request.form['codice_accesso']
+    codice_accesso = request.form.get('codice_accesso')
     
-    # Controllo se il codice inserito è valido
-    if len(codice_accesso) < 8:
+    # Verifica che il codice sia nel formato corretto (59XXXX per Penelope, 33XXXX per Eric)
+    if len(codice_accesso) != 6 or not codice_accesso.isdigit():
         return "Codice non valido!", 403
-    
-    prefisso = codice_accesso[:2]  # I primi due numeri identificano il ruolo
-    codice_stanza = codice_accesso[2:]  # Il resto è il codice della stanza
 
-    # Determina il ruolo in base al prefisso
-    if prefisso == "59":
-        ruolo = "Penelope"
-    elif prefisso == "33":
-        ruolo = "Eric"
+    # Estrai la parte del codice stanza
+    codice_stanza = codice_accesso[2:]
+
+    # Determina il personaggio in base al prefisso
+    if codice_accesso.startswith('59'):
+        session['ruolo'] = 'Penelope'
+    elif codice_accesso.startswith('33'):
+        session['ruolo'] = 'Eric'
     else:
-        return "Codice non valido!", 403
+        return "Codice di accesso non valido!", 403
 
-    session['ruolo'] = ruolo  # Salva il ruolo nella sessione
     return redirect(url_for('stanza', codice=codice_stanza))
 
 @app.route('/stanza/<codice>', methods=['GET', 'POST'])
 def stanza(codice):
-    ruolo = session.get('ruolo', 'Anonimo')  # Recupera il ruolo dall'utente
-
-    # Verifica se la stanza esiste nel database
-    with sqlite3.connect('stanza_virtuale.db') as conn:
-        c = conn.cursor()
-        c.execute("SELECT * FROM stanze WHERE codice = ?", (codice,))
-        stanza = c.fetchone()
-
-    if not stanza:
-        return "Codice non valido!", 403
-
-    stato, numero_penelope, numero_eric, chat, _ = stanza[1:]
-    
-    if chat is None:
-        chat = ""
-
-    if request.method == 'POST':
-        if 'numero' in request.form:
-            numero = request.form['numero']
-            if ruolo == 'Penelope':
-                numero_penelope = numero
-            elif ruolo == 'Eric':
-                numero_eric = numero
-
-            with sqlite3.connect('stanza_virtuale.db') as conn:
-                c = conn.cursor()
-                c.execute("UPDATE stanze SET numero_penelope = ?, numero_eric = ? WHERE codice = ?", 
-                          (numero_penelope, numero_eric, codice))
-                conn.commit()
-
-        if 'chat' in request.form:
-            new_message = request.form['chat']
-            chat += f"{ruolo}: {new_message}\n"
-            with sqlite3.connect('stanza_virtuale.db') as conn:
-                c = conn.cursor()
-                c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
-                conn.commit()
-
-        if numero_penelope and numero_eric:
-            with sqlite3.connect('stanza_virtuale.db') as conn:
-                c = conn.cursor()
-                c.execute("DELETE FROM stanze WHERE codice = ?", (codice,))
-                conn.commit()
-            return "Stanza chiusa!", 200
-
-    return render_template('stanza.html', codice=codice, stato=stato, ruolo=ruolo, chat=chat)
-
-# Funzione per autodistruggere stanze dopo 24 ore
-def autodistruzione():
-    while True:
-        time.sleep(3600)  # Controlla ogni ora
-        with sqlite3.connect('stanza_virtuale.db') as conn:
-            c = conn.cursor()
-            c.execute("DELETE FROM stanze WHERE timestamp < ?", (int(time.time()) - 86400,))
-            conn.commit()
-
-Thread(target=autodistruzione, daemon=True).start()
+    return f"Benvenuto nella stanza {codice}. Sei {session.get('ruolo', 'Sconosciuto')}."
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
-
