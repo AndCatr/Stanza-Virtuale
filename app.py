@@ -1,10 +1,26 @@
-from flask import Flask, render_template, request, session
-import sqlite3
-import time
-from threading import Thread
+from flask import Flask, render_template, request, redirect, url_for, session
+import random
+import string
 
 app = Flask(__name__)
-app.secret_key = 'segreto_super_sicuro'
+app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
+
+# Funzione per generare un codice stanza casuale
+def genera_codice_stanza():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+@app.route('/', methods=['GET', 'POST'])
+def home():
+    if request.method == 'POST':
+        codice = genera_codice_stanza()  # Genera un codice unico
+        session['codice'] = codice
+        return redirect(url_for('stanza', codice=codice))  # Reindirizza alla stanza
+    
+    return render_template('home.html')
+
+@app.route('/stanza/<codice>')
+def stanza(codice):
+    return f"Benvenuto nella stanza {codice}! Qui ci sarà la chat."
 
 # Inizializza database
 conn = sqlite3.connect('stanza_virtuale.db', check_same_thread=False)
