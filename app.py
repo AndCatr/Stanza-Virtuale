@@ -130,14 +130,14 @@ def stanza(codice):
         conn.commit()
         conn.close()
 
-    return render_template(
-        'stanza.html',
-        codice=codice,
-        ruolo=ruolo,
-        chat=chat.split("\n"),
-        numero_penelope=numero_penelope,
-        numero_eric=numero_eric
-    )
+   return render_template(
+    'stanza.html',
+    codice=codice,
+    ruolo=ruolo,
+    chat=[riga for riga in chat.split("\n") if riga.strip()],  # Evita righe vuote
+    numero_penelope=numero_penelope,
+    numero_eric=numero_eric
+)
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
