@@ -7,10 +7,13 @@
 </head>
 <body>
     <h1>Benvenuto nella Stanza Virtuale</h1>
+
     <form method="POST">
-        <label for="codice">Inserisci il codice della stanza:</label>
-        <input type="text" id="codice" name="codice" required>
-        <button type="submit">Entra</button>
+        <button type="submit">Genera un codice stanza</button>
     </form>
+
+    {% if session['codice'] %}
+        <p>Il tuo codice stanza è: <strong>{{ session['codice'] }}</strong></p>
+    {% endif %}
 </body>
 </html>
