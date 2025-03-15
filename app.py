@@ -90,34 +90,34 @@ def stanza(codice):
 
     chat, numero_penelope, numero_eric = stanza
 
-    # Gestione chat
-if request.method == 'POST' and 'messaggio' in request.form:
-    messaggio = request.form['messaggio']
-    ruolo = session.get('ruolo', '')
+    # **Gestione chat** (Ora è indentato correttamente)
+    if request.method == 'POST' and 'messaggio' in request.form:
+        messaggio = request.form['messaggio']
+        ruolo = session.get('ruolo', '')
 
-    # Recupera la chat esistente dal database
-    conn = sqlite3.connect('stanze.db')
-    c = conn.cursor()
-    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
-    result = c.fetchone()
-    
-    if result:
-        chat = result[0] if result[0] else ""  # Se la chat è None, inizializzala come stringa vuota
-    else:
-        chat = ""
+        # Recupera la chat esistente dal database
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+        result = c.fetchone()
+        
+        if result:
+            chat = result[0] if result[0] else ""  # Se la chat è None, inizializzala come stringa vuota
+        else:
+            chat = ""
 
-    chat += f"{ruolo}: {messaggio}\n"  # Aggiungi il nuovo messaggio
+        chat += f"{ruolo}: {messaggio}\n"  # Aggiungi il nuovo messaggio
 
-    # Salva la chat aggiornata nel database
-    c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
-    conn.commit()
-    conn.close()
-    
-    print(f"Messaggio ricevuto: {messaggio}")
-    print(f"Chat prima dell'aggiornamento: {chat}")
-    print(f"Chat dopo l'aggiornamento: {chat}")
-    
-    # Gestione numeri di telefono
+        # Salva la chat aggiornata nel database
+        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
+        conn.commit()
+        conn.close()
+        
+        print(f"Messaggio ricevuto: {messaggio}")
+        print(f"Chat prima dell'aggiornamento: {chat}")
+        print(f"Chat dopo l'aggiornamento: {chat}")
+
+    # **Gestione numeri di telefono**
     if request.method == 'POST' and 'numero' in request.form:
         numero = request.form['numero']
 
