@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stanza Virtuale</title>
+    <title>Benvenuto</title>
 </head>
 <body>
     <h1>Benvenuto nella Stanza Virtuale</h1>
-    <form method="POST">
-        <label for="codice">Inserisci il codice della stanza:</label>
-        <input type="text" id="codice" name="codice" required>
+    
+    <p>La stanza creata è: <strong>{{ codice_stanza }}</strong></p>
+    
+    <h2>Inserisci il codice di accesso</h2>
+    <form action="/ingresso" method="post">
+        <label for="codice">Codice di accesso:</label>
+        <input type="text" name="codice" required>
         <button type="submit">Entra</button>
     </form>
 </body>
