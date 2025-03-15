@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Benvenuto</title>
+    <title>Stanza Virtuale</title>
 </head>
 <body>
     <h1>Benvenuto nella Stanza Virtuale</h1>
-    
-    <p>La stanza creata è: <strong>{{ codice_stanza }}</strong></p>
-    
-    <h2>Inserisci il codice di accesso</h2>
+
+    {% if codice %}
+        <p>La stanza creata è: <strong>{{ codice }}</strong></p>
+        <p>Penelope usa: <strong>59{{ codice }}</strong></p>
+        <p>Eric usa: <strong>33{{ codice }}</strong></p>
+    {% endif %}
+
     <form action="/ingresso" method="post">
-        <label for="codice">Codice di accesso:</label>
-        <input type="text" name="codice" required>
+        <label for="codice_accesso">Inserisci il codice di accesso:</label>
+        <input type="text" name="codice_accesso" required>
         <button type="submit">Entra</button>
     </form>
 </body>
