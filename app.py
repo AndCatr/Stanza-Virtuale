@@ -36,6 +36,11 @@ def ingresso():
     # Estrai il codice della stanza rimuovendo i primi due caratteri
     codice_stanza = codice_accesso[2:]
 
+  # 🔹 STAMPE DI DEBUG 🔹
+    print("Codice inserito:", codice_accesso)
+    print("Codice stanza estratto:", codice_stanza)
+    print("Stanze disponibili:", stanze.keys())
+
     # Verifica se la stanza esiste
     if codice_stanza not in stanze:
         return "Stanza non trovata!", 404
