@@ -8,6 +8,10 @@
 <body>
     <h1>Benvenuto nella Stanza Virtuale</h1>
 
+    <form action="/" method="POST">
+        <button type="submit">Crea una stanza</button>
+    </form>
+
     {% if codice %}
         <p><b>La stanza creata è:</b> <strong>{{ codice }}</strong></p>
         <p>Penelope usa: <strong>59{{ codice }}</strong></p>
