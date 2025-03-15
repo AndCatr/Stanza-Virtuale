@@ -12,7 +12,9 @@
     <h2>Chat</h2>
     <div id="chat">
         {% for messaggio in chat %}
-            <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
+            {% if messaggio|length == 2 %}
+                <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
+            {% endif %}
         {% endfor %}
     </div>
 
