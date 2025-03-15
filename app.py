@@ -38,7 +38,7 @@ def home():
         conn.commit()
         conn.close()
 
-        print("Creazione stanza:", codice)  # Debug
+        print("✅ Creazione stanza:", codice)
         return render_template('home.html', codice=codice)
 
     return render_template('home.html', codice=None)
@@ -58,8 +58,8 @@ def ingresso():
     stanza = c.fetchone()
     conn.close()
 
-    print("Codice inserito:", codice_accesso)
-    print("Codice stanza estratto:", codice_stanza)
+    print("🔍 Codice inserito:", codice_accesso)
+    print("📌 Codice stanza estratto:", codice_stanza)
     
     if not stanza:
         print("❌ Errore: stanza non trovata!")
@@ -100,19 +100,22 @@ def stanza(codice):
         c = conn.cursor()
         c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
         result = c.fetchone()
-
+        
         if result:
             chat = result[0] if result[0] else ""  # Se la chat è None, inizializzala come stringa vuota
         else:
             chat = ""
 
-        chat += f"{ruolo}: {messaggio}\n"  # Aggiungi il nuovo messaggio
+        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  # Aggiungi il nuovo messaggio
 
         # Salva la chat aggiornata nel database
         c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
         conn.commit()
         conn.close()
-
+        
+        print(f"💬 Messaggio ricevuto: {messaggio}")
+        print(f"📄 Chat prima dell'aggiornamento: {chat}")
+    
     # Gestione numeri di telefono
     if request.method == 'POST' and 'numero' in request.form:
         numero = request.form['numero']
@@ -126,12 +129,14 @@ def stanza(codice):
         conn.commit()
         conn.close()
 
-    # **Qui potrebbe esserci il problema di indentazione**
+    # Dividere la chat in coppie (ruolo, messaggio)
+    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if riga.strip()]
+
     return render_template(
         'stanza.html',
         codice=codice,
         ruolo=ruolo,
-        chat=[riga for riga in chat.split("\n") if riga.strip()],  # Evita righe vuote
+        chat=chat_messaggi,
         numero_penelope=numero_penelope,
         numero_eric=numero_eric
     )
