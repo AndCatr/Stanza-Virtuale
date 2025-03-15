@@ -14,6 +14,7 @@ def genera_codice_stanza():
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
+    codice = None
     if request.method == 'POST':
         codice = genera_codice_stanza()
         session['codice'] = codice  # Salva il codice della stanza nella sessione
@@ -21,10 +22,7 @@ def home():
         # Crea la stanza
         stanze[codice] = {"chat": [], "numeri": {"Penelope": "", "Eric": ""}}
 
-        # PASSA IL CODICE ALLA PAGINA HTML
-        return render_template('home.html', codice=codice)
-
-    return render_template('home.html', codice=None)
+    return render_template('home.html', codice=codice)
 
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
@@ -80,4 +78,3 @@ def stanza(codice):
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
-
