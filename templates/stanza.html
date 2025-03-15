@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stanza Virtuale</title>
+</head>
+<body>
+    <h1>Stanza Virtuale: {{ codice }}</h1>
+    <p>Stato: {{ stato }}</p>
+    
+    <h2>Chat</h2>
+    <div id="chatbox">
+        <pre>{{ chat }}</pre>
+    </div>
+
+    <form method="post">
+        <label for="chat">Messaggio:</label>
+        <input type="text" name="chat" required>
+        <button type="submit">Invia</button>
+    </form>
+
+    <h2>Inserisci il tuo numero</h2>
+    <form method="post">
+        <label for="numero">Numero:</label>
+        <input type="text" name="numero" required>
+        <button type="submit">Invia</button>
+    </form>
+</body>
+</html>
