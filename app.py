@@ -40,7 +40,7 @@ def home():
         conn.commit()
         conn.close()
 
-        return render_template('home.html', codice=codice)
+        return redirect(url_for('stanza', codice=codice))
 
     return render_template('home.html', codice=None)
 
@@ -115,7 +115,7 @@ def stanza(codice):
         'stanza.html',
         codice=codice,
         ruolo=ruolo,
-        chat=chat.split("\n"),
+        chat=chat.split("\n") if chat else [],
         numero_penelope=numero_penelope,
         numero_eric=numero_eric
     )
@@ -140,7 +140,7 @@ def aggiorna_chat(codice):
     if not stanza:
         return jsonify({"chat": [], "completa": True})
 
-    chat = stanza[0].split("\n")
+    chat = stanza[0].split("\n") if stanza[0] else []
     chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
 
     completa = bool(stanza[1] and stanza[2])
