@@ -5,12 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
     <script>
-        function aggiornaNumeri() {
-            fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
+        function aggiornaChat() {
+            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
             .then(response => response.json())
             .then(data => {
-                document.getElementById("numero_penelope").innerText = data.numero_penelope;
-                document.getElementById("numero_eric").innerText = data.numero_eric;
+                let chatDiv = document.getElementById("chat");
+                chatDiv.innerHTML = "";
+                data.chat.forEach(msg => {
+                    let p = document.createElement("p");
+                    p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+                    chatDiv.appendChild(p);
+                });
             });
         }
 
@@ -28,7 +33,7 @@
             });
         }
 
-        setInterval(aggiornaNumeri, 3000);
+        setInterval(aggiornaChat, 3000);
         setInterval(aggiornaCountdown, 1000);
     </script>
 </head>
@@ -37,6 +42,8 @@
     <p>Penelope: <span id="numero_penelope">{{ numero_penelope }}</span></p>
     <p>Eric: <span id="numero_eric">{{ numero_eric }}</span></p>
     <p id="countdown"></p>
+
+    <div id="chat"></div>
 
     <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
         <input type="text" name="messaggio" id="chat_input" required>
