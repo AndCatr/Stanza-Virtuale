@@ -5,25 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
    <script>
-    function aggiornaCountdown() {
-        fetch("{{ url_for('verifica_countdown', codice=codice) }}")
+    function aggiornaStato() {
+        fetch("{{ url_for('aggiorna_stato', codice=codice) }}")
             .then(response => response.json())
             .then(data => {
+                // Aggiorna chat
+                let chatDiv = document.getElementById("chat");
+                chatDiv.innerHTML = "";
+                data.chat.forEach(messaggio => {
+                    let p = document.createElement("p");
+                    p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
+                    chatDiv.appendChild(p);
+                });
+
+                // Aggiorna numeri
+                document.getElementById("numero_penelope").innerText = data.numero_penelope;
+                document.getElementById("numero_eric").innerText = data.numero_eric;
+
+                // Aggiorna countdown
                 let countdownElement = document.getElementById("countdown");
-                if (data.countdown !== null) {
-                    countdownElement.innerText = "Tempo rimanente: " + data.countdown + " secondi";
-                    if (data.countdown <= 0) {
-                        document.getElementById("input_messaggio").disabled = true;
-                        document.getElementById("btn_messaggio").disabled = true;
-                        document.getElementById("input_numero").disabled = true;
-                        document.getElementById("btn_numero").disabled = true;
-                    }
+                if (data.tempo_rimanente !== null) {
+                    countdownElement.innerText = "Tempo rimanente: " + data.tempo_rimanente + " secondi";
+                }
+
+                // Blocca input se il countdown è finito
+                if (data.blocco) {
+                    document.getElementById("input_messaggio").disabled = true;
+                    document.getElementById("btn_messaggio").disabled = true;
+                    document.getElementById("input_numero").disabled = true;
+                    document.getElementById("btn_numero").disabled = true;
                 }
             })
-            .catch(error => console.error("Errore aggiornamento countdown:", error));
+            .catch(error => console.error("Errore aggiornamento stato:", error));
     }
 
-    setInterval(aggiornaCountdown, 1000);
+    setInterval(aggiornaStato, 2000);
 </script>
 </head>
 <body>
