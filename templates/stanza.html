@@ -5,82 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
     <script>
-        function aggiornaChat() {
-            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    let chatDiv = document.getElementById("chat");
-                    chatDiv.innerHTML = ""; // Svuota la chat per aggiornarla
+    function aggiornaChat() {
+        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+        .then(response => response.json())
+        .then(data => {
+            let chatDiv = document.getElementById("chat");
+            chatDiv.innerHTML = ""; // Svuota la chat per aggiornarla
 
-                    data.chat.forEach(msg => {
-                        let p = document.createElement("p");
-                        p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
-                        chatDiv.appendChild(p);
-                    });
-                })
-                .catch(error => console.error("Errore aggiornamento chat:", error));
-        }
+            data.chat.forEach(msg => {
+                let p = document.createElement("p");
+                p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+                chatDiv.appendChild(p);
+            });
+        })
+        .catch(error => console.error("Errore aggiornamento chat:", error));
+    }
 
-        function aggiornaNumeri() {
-            fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("numero_penelope").innerText = data.numero_penelope;
-                    document.getElementById("numero_eric").innerText = data.numero_eric;
-                })
-                .catch(error => console.error("Errore aggiornamento numeri:", error));
-        }
-
-        function controllaBlocco() {
-            fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    let numeroPenelope = data.numero_penelope !== "Non ancora inserito";
-                    let numeroEric = data.numero_eric !== "Non ancora inserito";
-
-                    // Blocca l'inserimento dei numeri di telefono
-                    if (numeroPenelope) {
-                        document.getElementById("numero_input").disabled = true;
-                        document.getElementById("numero_submit").disabled = true;
-                    }
-                    if (numeroEric) {
-                        document.getElementById("numero_input").disabled = true;
-                        document.getElementById("numero_submit").disabled = true;
-                    }
-
-                    // Blocca la chat se entrambi i numeri sono stati inseriti
-                    if (numeroPenelope && numeroEric) {
-                        document.getElementById("messaggio_input").disabled = true;
-                        document.getElementById("messaggio_submit").disabled = true;
-                    }
-                })
-                .catch(error => console.error("Errore nel controllo blocco:", error));
-        }
-
-        function aggiornaCountdown() {
-            fetch("{{ url_for('verifica_countdown', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    let countdownElement = document.getElementById("countdown");
-                    if (data.countdown === null) {
-                        countdownElement.innerText = "In attesa del secondo numero...";
-                    } else if (data.countdown > 0) {
-                        countdownElement.innerText = `Tempo rimanente: ${data.countdown} secondi`;
-                    } else {
-                        countdownElement.innerText = "Tempo scaduto!";
-                    }
-                })
-                .catch(error => console.error("Errore aggiornamento countdown:", error));
-        }
-
-        // Aggiorna la chat, i numeri, i blocchi e il countdown ogni 2 secondi
-        setInterval(() => {
-            aggiornaChat();
-            aggiornaNumeri();
-            controllaBlocco();
-            aggiornaCountdown();
-        }, 2000);
-    </script>
+    setInterval(aggiornaChat, 3000); // Aggiorna la chat ogni 3 secondi
+</script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
