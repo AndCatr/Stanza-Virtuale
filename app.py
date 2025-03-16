@@ -177,12 +177,12 @@ def controlla_blocco(codice):
     conn.close()
 
     if not stanza:
-        return jsonify({"blocco_numero": False, "blocco_chat": False})
+        return jsonify({"blocco_numero_penelope": False, "blocco_numero_eric": False, "blocco_chat": False})
 
     numero_penelope, numero_eric = stanza
-    blocco_numero_penelope = bool(numero_penelope)
-    blocco_numero_eric = bool(numero_eric)
-    blocco_chat = blocco_numero_penelope and blocco_numero_eric  # Se entrambi i numeri sono inseriti, blocca la chat
+    blocco_numero_penelope = bool(numero_penelope)  # Se esiste, blocca l'input
+    blocco_numero_eric = bool(numero_eric)  # Se esiste, blocca l'input
+    blocco_chat = blocco_numero_penelope and blocco_numero_eric  # Blocca la chat se entrambi i numeri sono inseriti
 
     return jsonify({
         "blocco_numero_penelope": blocco_numero_penelope,
