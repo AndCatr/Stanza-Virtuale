@@ -4,26 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
-    <script>
-        function aggiornaChat() {
-            fetch('/aggiorna_chat/{{ codice }}')
-                .then(response => response.json())
-                .then(data => {
-                    let chatDiv = document.getElementById("chat");
-                    chatDiv.innerHTML = "";  // Pulisce la chat prima di ricaricarla
-
-                    data.chat.forEach(messaggio => {
-                        let p = document.createElement("p");
-                        p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
-                        chatDiv.appendChild(p);
-                    });
-                })
-                .catch(error => console.error("Errore aggiornamento chat:", error));
-        }
-
-        // Aggiorna la chat ogni 2 secondi
-        setInterval(aggiornaChat, 2000);
-    </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
@@ -32,9 +12,7 @@
     <h2>Chat</h2>
     <div id="chat">
         {% for messaggio in chat %}
-            {% if messaggio|length == 2 %}
-                <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
-            {% endif %}
+            <p><strong>{{ messaggio.split(':')[0] }}:</strong> {{ messaggio.split(':')[1] }}</p>
         {% endfor %}
     </div>
 
@@ -44,37 +22,20 @@
         <button type="submit">Invia</button>
     </form>
 
-    <h2>Inserisci il tuo numero</h2>
-    {% if ruolo == "Penelope" %}
-        <p><strong>Inserisci il tuo numero di telefono, Penelope:</strong></p>
-    {% elif ruolo == "Eric" %}
-        <p><strong>Inserisci il tuo numero di telefono, Eric:</strong></p>
+    <h2>Numeri di telefono</h2>
+    <p><strong>Penelope:</strong> {{ numero_penelope if numero_penelope else "Non ancora inserito" }}</p>
+    <p><strong>Eric:</strong> {{ numero_eric if numero_eric else "Non ancora inserito" }}</p>
+
+    {% if not numero_penelope or not numero_eric %}
+        <h2>Inserisci il tuo numero</h2>
+        <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+            <label for="numero">Numero:</label>
+            <input type="text" name="numero" required>
+            <button type="submit">Invia</button>
+        </form>
+    {% else %}
+        <p style="color: red;"><strong>Entrambi i numeri sono stati inseriti! La stanza verrà eliminata.</strong></p>
     {% endif %}
 
-    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
-        <label for="numero">Numero:</label>
-        <input type="text" name="numero" required>
-        <button type="submit">Invia</button>
-    </form>
-    <script>
-    function aggiornaChat() {
-        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
-        .then(response => response.json())
-        .then(data => {
-            let chatDiv = document.getElementById("chat");
-            chatDiv.innerHTML = ""; // Svuota la chat per aggiornarla
-
-            data.chat.forEach(msg => {
-                let p = document.createElement("p");
-                p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
-                chatDiv.appendChild(p);
-            });
-        })
-        .catch(error => console.error("Errore aggiornamento chat:", error));
-    }
-
-    // Aggiorna la chat ogni 3 secondi
-    setInterval(aggiornaChat, 3000);
-</script>
 </body>
 </html>
