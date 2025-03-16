@@ -1,9 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session
 import random
 import string
 import sqlite3
-import threading
-import time
 
 app = Flask(__name__)
 app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
@@ -40,9 +38,10 @@ def home():
         conn.commit()
         conn.close()
 
-        return redirect(url_for('stanza', codice=codice))
+        print("✅ Creazione stanza:", codice)
+        return render_template('home.html', codice=codice)
 
-    return render_template('home.html')
+    return render_template('home.html', codice=None)
 
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
@@ -59,7 +58,11 @@ def ingresso():
     stanza = c.fetchone()
     conn.close()
 
+    print("🔍 Codice inserito:", codice_accesso)
+    print("📌 Codice stanza estratto:", codice_stanza)
+    
     if not stanza:
+        print("❌ Errore: stanza non trovata!")
         return "Stanza non trovata!", 404
 
     if codice_accesso.startswith('59'):
@@ -87,68 +90,74 @@ def stanza(codice):
 
     chat, numero_penelope, numero_eric = stanza
 
-    chat_bloccata = bool(numero_penelope and numero_eric)
+    # Gestione chat
+    if request.method == 'POST' and 'messaggio' in request.form:
+        messaggio = request.form['messaggio']
+        ruolo = session.get('ruolo', '')
 
-    if request.method == 'POST':
-        if 'messaggio' in request.form and not chat_bloccata:
-            messaggio = request.form['messaggio']
-            chat += f"{ruolo}: {messaggio}\n"
+        # Recupera la chat esistente dal database
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+        result = c.fetchone()
+        
+        if result:
+            chat = result[0] if result[0] else ""  # Se la chat è None, inizializzala come stringa vuota
+        else:
+            chat = ""
 
-            conn = sqlite3.connect('stanze.db')
-            c = conn.cursor()
-            c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
-            conn.commit()
-            conn.close()
+        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  # Aggiungi il nuovo messaggio
 
-        elif 'numero' in request.form:
-            numero = request.form['numero']
+        # Salva la chat aggiornata nel database
+        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
+        conn.commit()
+        conn.close()
+        
+        print(f"💬 Messaggio ricevuto: {messaggio}")
+        print(f"📄 Chat prima dell'aggiornamento: {chat}")
+    
+    # Gestione numeri di telefono
+    if request.method == 'POST' and 'numero' in request.form:
+        numero = request.form['numero']
 
-            conn = sqlite3.connect('stanze.db')
-            c = conn.cursor()
-            if ruolo == 'Penelope':
-                c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
-            else:
-                c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
-            conn.commit()
-            conn.close()
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        if ruolo == 'Penelope':
+            c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
+        else:
+            c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
+        conn.commit()
+        conn.close()
 
-            if numero_penelope and numero_eric:
-                threading.Thread(target=elimina_stanza, args=(codice,)).start()
+    # Dividere la chat in coppie (ruolo, messaggio)
+    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if riga.strip()]
 
     return render_template(
         'stanza.html',
         codice=codice,
         ruolo=ruolo,
-        chat=chat.split("\n"),
+        chat=chat_messaggi,
         numero_penelope=numero_penelope,
-        numero_eric=numero_eric,
-        chat_bloccata=chat_bloccata
+        numero_eric=numero_eric
     )
+
+from flask import jsonify
 
 @app.route('/aggiorna_chat/<codice>')
 def aggiorna_chat(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-    c.execute("SELECT chat, numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
 
     if not stanza:
-        return jsonify({"chat": [], "chat_bloccata": True})
+        return jsonify({"chat": []})
 
-    chat, numero_penelope, numero_eric = stanza
-    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if ": " in riga]
-    chat_bloccata = bool(numero_penelope and numero_eric)
+    chat = stanza[0].split("\n")
+    chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
 
-    return jsonify({"chat": chat_messaggi, "chat_bloccata": chat_bloccata})
-
-def elimina_stanza(codice):
-    time.sleep(30)
-    conn = sqlite3.connect('stanze.db')
-    c = conn.cursor()
-    c.execute("DELETE FROM stanze WHERE codice = ?", (codice,))
-    conn.commit()
-    conn.close()
+    return jsonify({"chat": chat_messaggi})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
