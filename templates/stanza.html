@@ -6,27 +6,23 @@
     <title>Stanza Virtuale: {{ codice }}</title>
     <script>
         function aggiornaChat() {
-            fetch("/aggiorna_chat/{{ codice }}")
+            fetch('/aggiorna_chat/{{ codice }}')
                 .then(response => response.json())
                 .then(data => {
                     let chatDiv = document.getElementById("chat");
-                    chatDiv.innerHTML = "";
+                    chatDiv.innerHTML = "";  // Pulisce la chat prima di ricaricarla
+
                     data.chat.forEach(messaggio => {
                         let p = document.createElement("p");
                         p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
                         chatDiv.appendChild(p);
                     });
-
-                    if (data.chat_bloccata) {
-                        document.getElementById("messaggio").disabled = true;
-                        document.getElementById("btnInvia").disabled = true;
-                    }
-                });
-
-            setTimeout(aggiornaChat, 3000);
+                })
+                .catch(error => console.error("Errore aggiornamento chat:", error));
         }
 
-        window.onload = aggiornaChat;
+        // Aggiorna la chat ogni 2 secondi
+        setInterval(aggiornaChat, 2000);
     </script>
 </head>
 <body>
@@ -34,23 +30,51 @@
     <p>Stato: <strong>aperta</strong></p>
 
     <h2>Chat</h2>
-    <div id="chat"></div>
+    <div id="chat">
+        {% for messaggio in chat %}
+            {% if messaggio|length == 2 %}
+                <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
 
-    {% if not chat_bloccata %}
     <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
-        <input type="text" id="messaggio" name="messaggio" required>
-        <button type="submit" id="btnInvia">Invia</button>
+        <label for="messaggio">Messaggio:</label>
+        <input type="text" name="messaggio" required>
+        <button type="submit">Invia</button>
     </form>
-    {% else %}
-    <p>La chat è stata bloccata.</p>
-    {% endif %}
 
     <h2>Inserisci il tuo numero</h2>
+    {% if ruolo == "Penelope" %}
+        <p><strong>Inserisci il tuo numero di telefono, Penelope:</strong></p>
+    {% elif ruolo == "Eric" %}
+        <p><strong>Inserisci il tuo numero di telefono, Eric:</strong></p>
+    {% endif %}
+
     <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
         <label for="numero">Numero:</label>
         <input type="text" name="numero" required>
         <button type="submit">Invia</button>
     </form>
+<script>
+    function aggiornaChat() {
+        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+        .then(response => response.json())
+        .then(data => {
+            let chatDiv = document.getElementById("chat");
+            chatDiv.innerHTML = ""; // Svuota la chat per aggiornarla
 
+            data.chat.forEach(msg => {
+                let p = document.createElement("p");
+                p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+                chatDiv.appendChild(p);
+            });
+        })
+        .catch(error => console.error("Errore aggiornamento chat:", error));
+    }
+
+    // Aggiorna la chat ogni 3 secondi
+    setInterval(aggiornaChat, 3000);
+</script>    
 </body>
 </html>
