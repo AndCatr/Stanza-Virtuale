@@ -55,4 +55,108 @@ def ingresso():
 
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-  
+    c.execute("SELECT codice FROM stanze WHERE codice = ?", (codice_stanza,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return "Stanza non trovata!", 404
+
+    if codice_accesso.startswith('59'):
+        session['ruolo'] = 'Penelope'
+    elif codice_accesso.startswith('33'):
+        session['ruolo'] = 'Eric'
+    else:
+        return "Codice di accesso non valido!", 403
+
+    session['codice'] = codice_stanza
+    return redirect(url_for('stanza', codice=codice_stanza))
+
+@app.route('/stanza/<codice>', methods=['GET', 'POST'])
+def stanza(codice):
+    ruolo = session.get('ruolo')
+
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT chat, numero_penelope, numero_eric, timestamp_countdown FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return "Stanza non trovata!", 404
+
+    chat, numero_penelope, numero_eric, timestamp_countdown = stanza
+
+    if request.method == 'POST' and 'messaggio' in request.form and numero_penelope and numero_eric:
+        messaggio = request.form['messaggio']
+
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+        result = c.fetchone()
+
+        chat = result[0] if result and result[0] else ""
+        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"
+
+        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
+        conn.commit()
+        conn.close()
+
+    if request.method == 'POST' and 'numero' in request.form:
+        numero = request.form['numero']
+
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        if ruolo == 'Penelope' and not numero_penelope:
+            c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
+        elif ruolo == 'Eric' and not numero_eric:
+            c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
+
+        conn.commit()
+        conn.close()
+
+    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if riga.strip()]
+
+    return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat_messaggi,
+                           numero_penelope=numero_penelope, numero_eric=numero_eric, countdown=timestamp_countdown)
+
+@app.route('/aggiorna_chat/<codice>')
+def aggiorna_chat(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    chat = stanza[0] if stanza else ""
+    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if ": " in riga]
+
+    return jsonify({"chat": chat_messaggi})
+
+@app.route('/verifica_countdown/<codice>')
+def verifica_countdown(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT numero_penelope, numero_eric, timestamp_countdown FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return jsonify({"countdown": None})
+
+    numero_penelope, numero_eric, timestamp_countdown = stanza
+
+    if numero_penelope and numero_eric and not timestamp_countdown:
+        timestamp_countdown = int(time.time()) + 30
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        c.execute("UPDATE stanze SET timestamp_countdown = ? WHERE codice = ?", (timestamp_countdown, codice))
+        conn.commit()
+        conn.close()
+
+    tempo_rimanente = max(0, timestamp_countdown - int(time.time())) if timestamp_countdown else None
+
+    return jsonify({"countdown": tempo_rimanente})
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000)
