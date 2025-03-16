@@ -17,10 +17,10 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS stanze (
                     codice TEXT PRIMARY KEY,
-                    chat TEXT,
-                    numero_penelope TEXT,
-                    numero_eric TEXT,
-                    timestamp_countdown INTEGER
+                    chat TEXT DEFAULT '',
+                    numero_penelope TEXT DEFAULT '',
+                    numero_eric TEXT DEFAULT '',
+                    timestamp_countdown INTEGER DEFAULT NULL
                  )''')
     conn.commit()
     conn.close()
@@ -36,8 +36,7 @@ def home():
 
         conn = sqlite3.connect('stanze.db')
         c = conn.cursor()
-        c.execute("INSERT INTO stanze (codice, chat, numero_penelope, numero_eric, timestamp_countdown) VALUES (?, ?, ?, ?, ?)",
-                  (codice, "", "", "", None))
+        c.execute("INSERT INTO stanze (codice) VALUES (?)", (codice,))
         conn.commit()
         conn.close()
 
@@ -87,9 +86,8 @@ def stanza(codice):
         return "Stanza non trovata!", 404
 
     chat, numero_penelope, numero_eric, timestamp_countdown = stanza
-    chat = chat if chat else ""
 
-    return render_template('stanza.html', codice=codice, chat=chat.split("\n"),
+    return render_template('stanza.html', codice=codice, chat=chat.split("\n") if chat else [],
                            numero_penelope=numero_penelope if numero_penelope else "Non ancora inserito",
                            numero_eric=numero_eric if numero_eric else "Non ancora inserito",
                            countdown=timestamp_countdown if timestamp_countdown else "Attesa numeri...")
@@ -105,7 +103,9 @@ def invia_chat(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
     c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
-    chat = c.fetchone()[0] if c.fetchone() else ""
+    result = c.fetchone()
+
+    chat = result[0] if result and result[0] else ""
     chat += f"\n{ruolo}: {messaggio}"
 
     c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
@@ -119,9 +119,11 @@ def aggiorna_chat(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
     c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
-    chat = c.fetchone()[0] if c.fetchone() else ""
+    result = c.fetchone()
     conn.close()
-    return jsonify({"chat": chat.split("\n")})
+
+    chat = result[0] if result else ""
+    return jsonify({"chat": chat.split("\n") if chat else []})
 
 @app.route('/invia_numero/<codice>', methods=['POST'])
 def invia_numero(codice):
@@ -150,6 +152,23 @@ def invia_numero(codice):
     conn.close()
     return jsonify({"success": True})
 
+@app.route('/aggiorna_numeri/<codice>')
+def aggiorna_numeri(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return jsonify({"numero_penelope": "Non ancora inserito", "numero_eric": "Non ancora inserito"})
+
+    numero_penelope, numero_eric = stanza
+    return jsonify({
+        "numero_penelope": numero_penelope if numero_penelope else "Non ancora inserito",
+        "numero_eric": numero_eric if numero_eric else "Non ancora inserito"
+    })
+
 @app.route('/verifica_countdown/<codice>')
 def verifica_countdown(codice):
     conn = sqlite3.connect('stanze.db')
@@ -163,3 +182,6 @@ def verifica_countdown(codice):
 
     tempo_rimanente = max(0, stanza[0] - int(time.time()))
     return jsonify({"countdown": tempo_rimanente})
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000)
