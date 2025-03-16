@@ -2,8 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import random
 import string
 import sqlite3
-import time
 import threading
+import time
 
 app = Flask(__name__)
 app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
@@ -42,7 +42,7 @@ def home():
 
         return redirect(url_for('stanza', codice=codice))
 
-    return render_template('home.html', codice=None)
+    return render_template('home.html')
 
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
@@ -80,54 +80,50 @@ def stanza(codice):
     c = conn.cursor()
     c.execute("SELECT chat, numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
+    conn.close()
 
     if not stanza:
         return "Stanza non trovata!", 404
 
     chat, numero_penelope, numero_eric = stanza
 
-    # Gestione chat
-    if request.method == 'POST' and 'messaggio' in request.form and not (numero_penelope and numero_eric):
-        messaggio = request.form['messaggio']
-        chat += f"{ruolo}: {messaggio}\n"
-        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
-        conn.commit()
+    chat_bloccata = bool(numero_penelope and numero_eric)
 
-    # Gestione numeri di telefono
-    if request.method == 'POST' and 'numero' in request.form:
-        numero = request.form['numero']
-        if ruolo == 'Penelope':
-            numero_penelope = numero
-            c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
-        else:
-            numero_eric = numero
-            c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
+    if request.method == 'POST':
+        if 'messaggio' in request.form and not chat_bloccata:
+            messaggio = request.form['messaggio']
+            chat += f"{ruolo}: {messaggio}\n"
 
-        conn.commit()
+            conn = sqlite3.connect('stanze.db')
+            c = conn.cursor()
+            c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
+            conn.commit()
+            conn.close()
 
-        # Se entrambi i numeri sono stati inseriti, avvia il timer per l'autodistruzione
-        if numero_penelope and numero_eric:
-            threading.Thread(target=autodistruzione_stanza, args=(codice,)).start()
+        elif 'numero' in request.form:
+            numero = request.form['numero']
 
-    conn.close()
+            conn = sqlite3.connect('stanze.db')
+            c = conn.cursor()
+            if ruolo == 'Penelope':
+                c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
+            else:
+                c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
+            conn.commit()
+            conn.close()
+
+            if numero_penelope and numero_eric:
+                threading.Thread(target=elimina_stanza, args=(codice,)).start()
 
     return render_template(
         'stanza.html',
         codice=codice,
         ruolo=ruolo,
-        chat=chat.split("\n") if chat else [],
+        chat=chat.split("\n"),
         numero_penelope=numero_penelope,
-        numero_eric=numero_eric
+        numero_eric=numero_eric,
+        chat_bloccata=chat_bloccata
     )
-
-def autodistruzione_stanza(codice):
-    """Attende 30 secondi e poi elimina la stanza"""
-    time.sleep(30)
-    conn = sqlite3.connect('stanze.db')
-    c = conn.cursor()
-    c.execute("DELETE FROM stanze WHERE codice = ?", (codice,))
-    conn.commit()
-    conn.close()
 
 @app.route('/aggiorna_chat/<codice>')
 def aggiorna_chat(codice):
@@ -138,14 +134,21 @@ def aggiorna_chat(codice):
     conn.close()
 
     if not stanza:
-        return jsonify({"chat": [], "completa": True})
+        return jsonify({"chat": [], "chat_bloccata": True})
 
-    chat = stanza[0].split("\n") if stanza[0] else []
-    chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
+    chat, numero_penelope, numero_eric = stanza
+    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if ": " in riga]
+    chat_bloccata = bool(numero_penelope and numero_eric)
 
-    completa = bool(stanza[1] and stanza[2])
+    return jsonify({"chat": chat_messaggi, "chat_bloccata": chat_bloccata})
 
-    return jsonify({"chat": chat_messaggi, "completa": completa})
+def elimina_stanza(codice):
+    time.sleep(30)
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("DELETE FROM stanze WHERE codice = ?", (codice,))
+    conn.commit()
+    conn.close()
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
