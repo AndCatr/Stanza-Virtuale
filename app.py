@@ -5,7 +5,7 @@ import sqlite3
 import time
 
 app = Flask(__name__)
-app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
+app.secret_key = 'chiave_super_segreta'  # Chiave sicura per la sessione
 
 # Funzione per generare un codice stanza casuale
 def genera_codice_stanza():
@@ -31,7 +31,7 @@ init_db()
 def home():
     if request.method == 'POST':
         codice = genera_codice_stanza()
-        session.clear()  # Reset sessione per evitare bug di identificazione
+        session.clear()  # Reset della sessione per evitare problemi di identificazione
         session['codice'] = codice
 
         conn = sqlite3.connect('stanze.db')
@@ -42,7 +42,7 @@ def home():
         conn.close()
 
         print("✅ Creazione stanza:", codice)
-        return render_template('home.html', codice=codice)
+        return redirect(url_for('stanza', codice=codice))  # Entra direttamente nella stanza
 
     return render_template('home.html', codice=None)
 
@@ -61,13 +61,10 @@ def ingresso():
     stanza = c.fetchone()
     conn.close()
 
-    print("🔍 Codice inserito:", codice_accesso)
-    print("📌 Codice stanza estratto:", codice_stanza)
-    
     if not stanza:
         return "Stanza non trovata!", 404
 
-    session.clear()  # Reset del ruolo
+    session.clear()  # Reset ruolo
     if codice_accesso.startswith('59'):
         session['ruolo'] = 'Penelope'
     elif codice_accesso.startswith('33'):
@@ -78,7 +75,7 @@ def ingresso():
     session['codice'] = codice_stanza
     return redirect(url_for('stanza', codice=codice_stanza))
 
-@app.route('/stanza/<codice>', methods=['GET'])
+@app.route('/stanza/<codice>')
 def stanza(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
@@ -97,6 +94,35 @@ def stanza(codice):
                            numero_eric=numero_eric if numero_eric else "Non ancora inserito",
                            countdown=timestamp_countdown if timestamp_countdown else "Attesa numeri...")
 
+@app.route('/invia_chat/<codice>', methods=['POST'])
+def invia_chat(codice):
+    ruolo = session.get('ruolo')
+    messaggio = request.form.get('messaggio')
+
+    if not ruolo or not messaggio:
+        return jsonify({"success": False})
+
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    chat = c.fetchone()[0] if c.fetchone() else ""
+    chat += f"\n{ruolo}: {messaggio}"
+
+    c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+@app.route('/aggiorna_chat/<codice>')
+def aggiorna_chat(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    chat = c.fetchone()[0] if c.fetchone() else ""
+    conn.close()
+    return jsonify({"chat": chat.split("\n")})
+
 @app.route('/invia_numero/<codice>', methods=['POST'])
 def invia_numero(codice):
     ruolo = session.get('ruolo')
@@ -113,7 +139,6 @@ def invia_numero(codice):
     elif ruolo == 'Eric':
         c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
     
-    # Controlla se entrambi i numeri sono stati inseriti per avviare il countdown
     c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     
