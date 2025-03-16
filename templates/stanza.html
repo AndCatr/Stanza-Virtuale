@@ -5,33 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
     <script>
-        function aggiornaDati() {
-            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    let chatDiv = document.getElementById("chat");
-                    chatDiv.innerHTML = "";
-                    data.chat.forEach(messaggio => {
-                        let p = document.createElement("p");
-                        p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
-                        chatDiv.appendChild(p);
-                    });
+    function aggiornaDati() {
+        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                let chatDiv = document.getElementById("chat");
+                chatDiv.innerHTML = "";
+                data.chat.forEach(messaggio => {
+                    let p = document.createElement("p");
+                    p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
+                    chatDiv.appendChild(p);
                 });
+            });
 
-            fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("numero_penelope").innerText = data.numero_penelope;
-                    document.getElementById("numero_eric").innerText = data.numero_eric;
-                    
-                    if (data.numero_penelope !== "Non ancora inserito" && data.numero_eric !== "Non ancora inserito") {
-                        document.getElementById("countdown").innerText = "Countdown iniziato!";
-                    }
-                });
-        }
+        fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("numero_penelope").innerText = data.numero_penelope;
+                document.getElementById("numero_eric").innerText = data.numero_eric;
 
-        setInterval(aggiornaDati, 2000);
-    </script>
+                if (data.countdown) {
+                    document.getElementById("countdown").innerText = "⏳ Countdown iniziato!";
+                }
+            });
+    }
+
+    setInterval(aggiornaDati, 2000);
+</script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
