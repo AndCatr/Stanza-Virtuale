@@ -11,23 +11,29 @@
                 chatBox.innerHTML = "";
                 data.chat.forEach(msg => {
                     let item = document.createElement("li");
-                    item.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+                    item.innerHTML = msg;
                     chatBox.appendChild(item);
                 });
             });
         }
 
-        function inviaNumero() {
-            let numero = document.getElementById("numero").value;
-            fetch("/invia_numero/{{ codice }}", {
+        function inviaChat() {
+            let messaggio = document.getElementById("messaggio").value;
+            fetch("/invia_chat/{{ codice }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: "numero=" + numero
-            }).then(response => response.json())
-              .then(data => {
-                if (data.success) {
-                    document.getElementById("numero").value = "";
-                }
+                body: "messaggio=" + messaggio
+            }).then(() => {
+                document.getElementById("messaggio").value = "";
+            });
+        }
+
+        function aggiornaNumeri() {
+            fetch("/aggiorna_numeri/{{ codice }}")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("numero_penelope").innerText = data.numero_penelope;
+                document.getElementById("numero_eric").innerText = data.numero_eric;
             });
         }
 
@@ -35,34 +41,25 @@
             fetch("/verifica_countdown/{{ codice }}")
             .then(response => response.json())
             .then(data => {
-                let countdownBox = document.getElementById("countdown");
-                if (data.countdown === null) {
-                    countdownBox.innerHTML = "Attesa numeri...";
-                } else if (data.countdown > 0) {
-                    countdownBox.innerHTML = `Tempo rimanente: ${data.countdown} secondi`;
-                } else {
-                    countdownBox.innerHTML = "Tempo scaduto!";
-                }
+                document.getElementById("countdown").innerText = data.countdown ? `Tempo rimanente: ${data.countdown} secondi` : "Attesa numeri...";
             });
         }
 
-        setInterval(aggiornaChat, 3000);
+        setInterval(aggiornaChat, 2000);
+        setInterval(aggiornaNumeri, 2000);
         setInterval(aggiornaCountdown, 1000);
     </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
-
     <h2>Chat</h2>
     <ul id="chat"></ul>
+    <input type="text" id="messaggio" placeholder="Scrivi un messaggio">
+    <button onclick="inviaChat()">Invia</button>
 
     <h2>Numeri di telefono</h2>
     <p>Penelope: <span id="numero_penelope">{{ numero_penelope }}</span></p>
     <p>Eric: <span id="numero_eric">{{ numero_eric }}</span></p>
-
-    <h2>Inserisci il tuo numero</h2>
-    <input type="text" id="numero" placeholder="Numero di telefono">
-    <button onclick="inviaNumero()">Invia</button>
 
     <h2>Countdown</h2>
     <p id="countdown">{{ countdown }}</p>
