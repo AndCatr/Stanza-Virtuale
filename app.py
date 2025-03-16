@@ -162,5 +162,21 @@ def verifica_countdown(codice):
 
     return jsonify({"countdown": tempo_rimanente})
 
+@app.route('/aggiorna_chat/<codice>')
+def aggiorna_chat(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return jsonify({"chat": []})
+
+    chat = stanza[0].split("\n") if stanza[0] else []
+    chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
+
+    return jsonify({"chat": chat_messaggi})
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
