@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
     <script>
+        function aggiornaChat() {
+            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                let chatBox = document.getElementById("chat");
+                chatBox.innerHTML = "";
+                data.chat.forEach(messaggio => {
+                    let p = document.createElement("p");
+                    p.innerText = messaggio;
+                    chatBox.appendChild(p);
+                });
+            });
+        }
+
         function aggiornaNumeri() {
             fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
             .then(response => response.json())
@@ -18,20 +32,29 @@
             fetch("{{ url_for('verifica_countdown', codice=codice) }}")
             .then(response => response.json())
             .then(data => {
+                let countdown = document.getElementById("countdown");
                 if (data.countdown !== null) {
-                    document.getElementById("countdown").innerText = `Tempo rimanente: ${data.countdown} secondi`;
+                    countdown.innerText = `Tempo rimanente: ${data.countdown} secondi`;
                 }
             });
         }
 
+        setInterval(aggiornaChat, 2000);
         setInterval(aggiornaNumeri, 3000);
         setInterval(aggiornaCountdown, 1000);
     </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
+    
+    <h2>Chat</h2>
+    <div id="chat"></div>
+
+    <h2>Numeri di telefono</h2>
     <p>Penelope: <span id="numero_penelope">{{ numero_penelope }}</span></p>
     <p>Eric: <span id="numero_eric">{{ numero_eric }}</span></p>
+    
+    <h2>Countdown</h2>
     <p id="countdown"></p>
 </body>
 </html>
