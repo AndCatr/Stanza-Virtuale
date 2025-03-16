@@ -40,9 +40,9 @@ def home():
         conn.commit()
         conn.close()
 
-        return render_template('home.html', codice=codice)
+        return redirect(url_for('stanza', codice=codice))
 
-    return render_template('home.html', codice=None)
+    return render_template('home.html')
 
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
@@ -87,38 +87,18 @@ def stanza(codice):
 
     chat, numero_penelope, numero_eric, timestamp_countdown = stanza
 
-    if request.method == 'POST' and 'messaggio' in request.form and numero_penelope and numero_eric:
-        messaggio = request.form['messaggio']
-
-        conn = sqlite3.connect('stanze.db')
-        c = conn.cursor()
-        c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
-        result = c.fetchone()
-
-        chat = result[0] if result and result[0] else ""
-        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"
-
-        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
-        conn.commit()
-        conn.close()
-
-    if request.method == 'POST' and 'numero' in request.form:
-        numero = request.form['numero']
-
-        conn = sqlite3.connect('stanze.db')
-        c = conn.cursor()
-        if ruolo == 'Penelope' and not numero_penelope:
-            c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
-        elif ruolo == 'Eric' and not numero_eric:
-            c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
-
-        conn.commit()
-        conn.close()
-
-    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if riga.strip()]
-
-    return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat_messaggi,
+    return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat.split("\n") if chat else [],
                            numero_penelope=numero_penelope, numero_eric=numero_eric, countdown=timestamp_countdown)
+
+@app.route('/aggiorna_chat/<codice>')
+def aggiorna_chat(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    return jsonify({"chat": stanza[0].split("\n") if stanza and stanza[0] else []})
 
 @app.route('/aggiorna_numeri/<codice>')
 def aggiorna_numeri(codice):
