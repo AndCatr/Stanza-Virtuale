@@ -5,20 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
     <script>
-        function aggiornaChat() {
-            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
-            .then(response => response.json())
-            .then(data => {
-                let chatDiv = document.getElementById("chat");
-                chatDiv.innerHTML = "";
-                data.chat.forEach(msg => {
-                    let p = document.createElement("p");
-                    p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
-                    chatDiv.appendChild(p);
-                });
-            });
-        }
-
         function aggiornaNumeri() {
             fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
             .then(response => response.json())
@@ -28,33 +14,32 @@
             });
         }
 
-        setInterval(aggiornaChat, 3000);
+        function aggiornaCountdown() {
+            fetch("{{ url_for('verifica_countdown', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                let countdownDiv = document.getElementById("countdown");
+                if (data.countdown !== null) {
+                    countdownDiv.innerText = `Tempo rimanente: ${data.countdown} secondi`;
+                    if (data.countdown === 0) {
+                        document.getElementById("chat_input").disabled = true;
+                    }
+                }
+            });
+        }
+
         setInterval(aggiornaNumeri, 3000);
+        setInterval(aggiornaCountdown, 1000);
     </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
-
-    <h2>Chat</h2>
-    <div id="chat">
-        {% for messaggio in chat %}
-            {% if messaggio|length == 2 %}
-                <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
-            {% endif %}
-        {% endfor %}
-    </div>
-
-    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
-        <input type="text" name="messaggio" required>
-        <button type="submit">Invia</button>
-    </form>
-
-    <h2>Numeri</h2>
     <p>Penelope: <span id="numero_penelope">{{ numero_penelope }}</span></p>
     <p>Eric: <span id="numero_eric">{{ numero_eric }}</span></p>
+    <p id="countdown"></p>
 
     <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
-        <input type="text" name="numero" required>
+        <input type="text" name="messaggio" id="chat_input" required>
         <button type="submit">Invia</button>
     </form>
 </body>
