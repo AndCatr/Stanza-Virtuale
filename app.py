@@ -18,7 +18,8 @@ def init_db():
                     codice TEXT PRIMARY KEY,
                     chat TEXT,
                     numero_penelope TEXT,
-                    numero_eric TEXT
+                    numero_eric TEXT,
+                    timestamp_countdown INTEGER
                  )''')
     conn.commit()
     conn.close()
@@ -189,6 +190,38 @@ def controlla_blocco(codice):
         "blocco_numero_eric": blocco_numero_eric,
         "blocco_chat": blocco_chat
     })
+
+import time  # Per gestire il timestamp
+
+@app.route('/verifica_countdown/<codice>')
+def verifica_countdown(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT numero_penelope, numero_eric, timestamp_countdown FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return jsonify({"countdown": None})
+
+    numero_penelope, numero_eric, timestamp_countdown = stanza
+
+    # Se entrambi i numeri sono stati inseriti e non c'è ancora un timestamp, lo avviamo ora
+    if numero_penelope and numero_eric and not timestamp_countdown:
+        timestamp_countdown = int(time.time()) + 30  # Salva il timestamp per 30 secondi da ora
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        c.execute("UPDATE stanze SET timestamp_countdown = ? WHERE codice = ?", (timestamp_countdown, codice))
+        conn.commit()
+        conn.close()
+
+    # Se il countdown è già iniziato, calcoliamo il tempo rimanente
+    if timestamp_countdown:
+        tempo_rimanente = max(0, timestamp_countdown - int(time.time()))  # Evita numeri negativi
+    else:
+        tempo_rimanente = None  # Countdown non attivo
+
+    return jsonify({"countdown": tempo_rimanente})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
