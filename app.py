@@ -31,7 +31,7 @@ init_db()
 def home():
     if request.method == 'POST':
         codice = genera_codice_stanza()
-        session.clear()  # Rimuove qualsiasi ruolo predefinito
+        session.clear()  # Reset sessione per evitare bug di identificazione
         session['codice'] = codice
 
         conn = sqlite3.connect('stanze.db')
@@ -42,7 +42,7 @@ def home():
         conn.close()
 
         print("✅ Creazione stanza:", codice)
-        return redirect(url_for('stanza', codice=codice))
+        return render_template('home.html', codice=codice)
 
     return render_template('home.html', codice=None)
 
@@ -65,7 +65,6 @@ def ingresso():
     print("📌 Codice stanza estratto:", codice_stanza)
     
     if not stanza:
-        print("❌ Errore: stanza non trovata!")
         return "Stanza non trovata!", 404
 
     session.clear()  # Reset del ruolo
@@ -93,24 +92,50 @@ def stanza(codice):
         return "Stanza non trovata!", 404
 
     chat, numero_penelope, numero_eric, timestamp_countdown = stanza
-    chat = chat if chat else ""  # Evita errori su .split("\n")
+    chat = chat if chat else ""
 
     return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat.split("\n"),
                            numero_penelope=numero_penelope, numero_eric=numero_eric,
                            countdown=timestamp_countdown if timestamp_countdown else "Attesa numeri...")
 
-@app.route('/aggiorna_chat/<codice>')
-def aggiorna_chat(codice):
+@app.route('/invia_numero/<codice>', methods=['POST'])
+def invia_numero(codice):
+    ruolo = session.get('ruolo')
+    numero = request.form.get('numero')
+
+    if not ruolo or not numero:
+        return jsonify({"success": False})
+
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    
+    if ruolo == 'Penelope':
+        c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
+    elif ruolo == 'Eric':
+        c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
+    
+    # Controlla se entrambi i numeri sono stati inseriti per avviare il countdown
+    c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    
+    if stanza and all(stanza):
+        timestamp_fine = int(time.time()) + 300  # Countdown di 5 minuti
+        c.execute("UPDATE stanze SET timestamp_countdown = ? WHERE codice = ?", (timestamp_fine, codice))
+
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route('/verifica_countdown/<codice>')
+def verifica_countdown(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT timestamp_countdown FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
 
-    if not stanza:
-        return jsonify({"chat": []})
+    if not stanza or not stanza[0]:
+        return jsonify({"countdown": None})
 
-    chat = stanza[0] if stanza[0] else ""
-    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if ": " in riga]
-
-    return jsonify({"chat": chat_messaggi})
+    tempo_rimanente = max(0, stanza[0] - int(time.time()))
+    return jsonify({"countdown": tempo_rimanente})
