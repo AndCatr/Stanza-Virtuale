@@ -5,20 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
    <script>
-    function aggiornaChat() {
-        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+    function verificaCountdown() {
+        fetch("{{ url_for('verifica_countdown', codice=codice) }}")
             .then(response => response.json())
             .then(data => {
-                let chatDiv = document.getElementById("chat");
-                chatDiv.innerHTML = "";  // Pulisce la chat prima di ricaricarla
-
-                data.chat.forEach(messaggio => {
-                    let p = document.createElement("p");
-                    p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
-                    chatDiv.appendChild(p);
-                });
+                if (data.countdown) {
+                    document.getElementById("countdown").innerText = "Countdown iniziato!";
+                }
             })
-            .catch(error => console.error("Errore aggiornamento chat:", error));
+            .catch(error => console.error("Errore verifica countdown:", error));
     }
 
     function aggiornaNumeri() {
@@ -31,33 +26,59 @@
             .catch(error => console.error("Errore aggiornamento numeri:", error));
     }
 
-    function controllaBlocco() {
-        fetch("{{ url_for('controlla_blocco', codice=codice) }}")
+    function aggiornaChat() {
+        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
             .then(response => response.json())
             .then(data => {
-                if (data.blocco_numero_penelope && "{{ ruolo }}" === "Penelope") {
-                    document.getElementById("input_numero").disabled = true;
-                    document.getElementById("btn_numero").disabled = true;
-                }
-                if (data.blocco_numero_eric && "{{ ruolo }}" === "Eric") {
-                    document.getElementById("input_numero").disabled = true;
-                    document.getElementById("btn_numero").disabled = true;
-                }
-                if (data.blocco_chat) {
-                    document.getElementById("input_messaggio").disabled = true;
-                    document.getElementById("btn_messaggio").disabled = true;
-                }
+                let chatDiv = document.getElementById("chat");
+                chatDiv.innerHTML = "";
+                data.chat.forEach(messaggio => {
+                    let p = document.createElement("p");
+                    p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
+                    chatDiv.appendChild(p);
+                });
             })
-            .catch(error => console.error("Errore nel controllo del blocco:", error));
+            .catch(error => console.error("Errore aggiornamento chat:", error));
     }
 
-    // Aggiorna chat, numeri e blocchi ogni 2 secondi
+    // Aggiorna chat, numeri e countdown ogni 2 secondi
     setInterval(() => {
         aggiornaChat();
         aggiornaNumeri();
-        controllaBlocco();
+        verificaCountdown();
     }, 2000);
 </script>
+
+<h1>Stanza Virtuale: {{ codice }}</h1>
+
+<h2>Chat</h2>
+<div id="chat">
+    {% for messaggio in chat %}
+        {% if messaggio|length == 2 %}
+            <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+    <label for="messaggio">Messaggio:</label>
+    <input type="text" name="messaggio" id="input_messaggio" required>
+    <button type="submit" id="btn_messaggio">Invia</button>
+</form>
+
+<h2>Numeri di telefono</h2>
+<p><strong>Numero di Penelope:</strong> <span id="numero_penelope">{{ numero_penelope }}</span></p>
+<p><strong>Numero di Eric:</strong> <span id="numero_eric">{{ numero_eric }}</span></p>
+
+<h3>Inserisci il tuo numero</h3>
+<form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+    <label for="numero">Numero:</label>
+    <input type="text" name="numero" id="input_numero" required>
+    <button type="submit" id="btn_numero">Invia</button>
+</form>
+
+<!-- Countdown Messaggio -->
+<h3 id="countdown">Attesa numeri...</h3>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
