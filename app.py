@@ -140,13 +140,28 @@ def aggiorna_chat(codice):
 def aggiorna_numeri(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-    c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
+    c.execute("SELECT numero_penelope, numero_eric, countdown_iniziato FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
 
+    if not stanza:
+        return jsonify({"numero_penelope": "Non ancora inserito", "numero_eric": "Non ancora inserito", "countdown": False})
+
+    numero_penelope, numero_eric, countdown_iniziato = stanza
+
+    # Se entrambi i numeri sono stati inseriti e il countdown non è ancora partito, lo avviamo
+    if numero_penelope and numero_eric and not countdown_iniziato:
+        conn = sqlite3.connect('stanze.db')
+        c = conn.cursor()
+        c.execute("UPDATE stanze SET countdown_iniziato = 1 WHERE codice = ?", (codice,))
+        conn.commit()
+        conn.close()
+        countdown_iniziato = 1  # Aggiorna lo stato locale
+
     return jsonify({
-        "numero_penelope": stanza[0] or "Non ancora inserito",
-        "numero_eric": stanza[1] or "Non ancora inserito"
+        "numero_penelope": numero_penelope if numero_penelope else "Non ancora inserito",
+        "numero_eric": numero_eric if numero_eric else "Non ancora inserito",
+        "countdown": bool(countdown_iniziato)
     })
 
 if __name__ == '__main__':
