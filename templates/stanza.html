@@ -17,28 +17,42 @@
             });
         }
 
+        function aggiornaCountdown() {
+            fetch("{{ url_for('verifica_countdown', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                let countdownBox = document.getElementById("countdown");
+                if (data.countdown === null) {
+                    countdownBox.innerHTML = "Attesa numeri...";
+                } else if (data.countdown > 0) {
+                    countdownBox.innerHTML = `Tempo rimanente: ${data.countdown} secondi`;
+                } else {
+                    countdownBox.innerHTML = "Tempo scaduto!";
+                }
+            });
+        }
+
         setInterval(aggiornaChat, 3000);
+        setInterval(aggiornaCountdown, 1000);
     </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
-    
+
     <h2>Chat</h2>
     <ul id="chat">
         {% for msg in chat %}
-            <li><strong>{{ msg[0] }}:</strong> {{ msg[1] }}</li>
+            <li><strong>{{ msg.split(': ')[0] }}:</strong> {{ msg.split(': ')[1] }}</li>
         {% endfor %}
     </ul>
-
-    <form method="post">
-        <input type="text" name="messaggio" placeholder="Scrivi un messaggio">
-        <button type="submit">Invia</button>
-    </form>
 
     <h2>Inserisci il tuo numero</h2>
     <form method="post">
         <input type="text" name="numero" placeholder="Numero di telefono">
         <button type="submit">Invia</button>
     </form>
+
+    <h2>Countdown</h2>
+    <p id="countdown">{{ countdown }}</p>
 </body>
 </html>
