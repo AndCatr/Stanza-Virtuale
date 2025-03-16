@@ -78,10 +78,8 @@ def ingresso():
     session['codice'] = codice_stanza
     return redirect(url_for('stanza', codice=codice_stanza))
 
-@app.route('/stanza/<codice>', methods=['GET', 'POST'])
+@app.route('/stanza/<codice>', methods=['GET'])
 def stanza(codice):
-    ruolo = session.get('ruolo')
-
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
     c.execute("SELECT chat, numero_penelope, numero_eric, timestamp_countdown FROM stanze WHERE codice = ?", (codice,))
@@ -94,8 +92,9 @@ def stanza(codice):
     chat, numero_penelope, numero_eric, timestamp_countdown = stanza
     chat = chat if chat else ""
 
-    return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat.split("\n"),
-                           numero_penelope=numero_penelope, numero_eric=numero_eric,
+    return render_template('stanza.html', codice=codice, chat=chat.split("\n"),
+                           numero_penelope=numero_penelope if numero_penelope else "Non ancora inserito",
+                           numero_eric=numero_eric if numero_eric else "Non ancora inserito",
                            countdown=timestamp_countdown if timestamp_countdown else "Attesa numeri...")
 
 @app.route('/invia_numero/<codice>', methods=['POST'])
@@ -119,7 +118,7 @@ def invia_numero(codice):
     stanza = c.fetchone()
     
     if stanza and all(stanza):
-        timestamp_fine = int(time.time()) + 300  # Countdown di 5 minuti
+        timestamp_fine = int(time.time()) + 30  # Countdown di 30 secondi
         c.execute("UPDATE stanze SET timestamp_countdown = ? WHERE codice = ?", (timestamp_fine, codice))
 
     conn.commit()
