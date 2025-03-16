@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 import random
 import string
 import sqlite3
+import time
+import threading
 
 app = Flask(__name__)
 app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
@@ -85,10 +87,9 @@ def stanza(codice):
     chat, numero_penelope, numero_eric = stanza
 
     # Gestione chat
-    if request.method == 'POST' and 'messaggio' in request.form:
+    if request.method == 'POST' and 'messaggio' in request.form and not (numero_penelope and numero_eric):
         messaggio = request.form['messaggio']
         chat += f"{ruolo}: {messaggio}\n"
-
         c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
         conn.commit()
 
@@ -104,12 +105,9 @@ def stanza(codice):
 
         conn.commit()
 
-        # Controlliamo se entrambi i numeri sono stati inseriti e distruggiamo la stanza
+        # Se entrambi i numeri sono stati inseriti, avvia il timer per l'autodistruzione
         if numero_penelope and numero_eric:
-            c.execute("DELETE FROM stanze WHERE codice = ?", (codice,))
-            conn.commit()
-            conn.close()
-            return redirect(url_for('home'))  # Reindirizza alla home dopo l'autodistruzione
+            threading.Thread(target=autodistruzione_stanza, args=(codice,)).start()
 
     conn.close()
 
@@ -122,21 +120,32 @@ def stanza(codice):
         numero_eric=numero_eric
     )
 
+def autodistruzione_stanza(codice):
+    """Attende 30 secondi e poi elimina la stanza"""
+    time.sleep(30)
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("DELETE FROM stanze WHERE codice = ?", (codice,))
+    conn.commit()
+    conn.close()
+
 @app.route('/aggiorna_chat/<codice>')
 def aggiorna_chat(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    c.execute("SELECT chat, numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
 
     if not stanza:
-        return jsonify({"chat": []})
+        return jsonify({"chat": [], "completa": True})
 
     chat = stanza[0].split("\n")
     chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
 
-    return jsonify({"chat": chat_messaggi})
+    completa = bool(stanza[1] and stanza[2])
+
+    return jsonify({"chat": chat_messaggi, "completa": completa})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
