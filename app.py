@@ -40,7 +40,8 @@ def home():
         conn.commit()
         conn.close()
 
-        return render_template('home.html', codice=codice)
+        print("✅ Creazione stanza:", codice)
+        return redirect(url_for('stanza', codice=codice))
 
     return render_template('home.html', codice=None)
 
@@ -59,7 +60,11 @@ def ingresso():
     stanza = c.fetchone()
     conn.close()
 
+    print("🔍 Codice inserito:", codice_accesso)
+    print("📌 Codice stanza estratto:", codice_stanza)
+    
     if not stanza:
+        print("❌ Errore: stanza non trovata!")
         return "Stanza non trovata!", 404
 
     if codice_accesso.startswith('59'):
@@ -90,15 +95,11 @@ def stanza(codice):
     # Gestione chat
     if request.method == 'POST' and 'messaggio' in request.form:
         messaggio = request.form['messaggio']
+        ruolo = session.get('ruolo', '')
 
         conn = sqlite3.connect('stanze.db')
         c = conn.cursor()
-        c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
-        result = c.fetchone()
-        
-        chat = result[0] if result and result[0] else ""  
         chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  
-
         c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
         conn.commit()
         conn.close()
@@ -115,29 +116,35 @@ def stanza(codice):
         elif ruolo == 'Eric':
             c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
             numero_eric = numero  
-        conn.commit()
-        conn.close()
 
-    # Se entrambi i numeri sono stati inseriti e il countdown non è ancora avviato, lo avviamo ora
-    if numero_penelope and numero_eric and not timestamp_countdown:
-        timestamp_countdown = int(time.time()) + 30  # Countdown di 30 secondi
-        conn = sqlite3.connect('stanze.db')
-        c = conn.cursor()
-        c.execute("UPDATE stanze SET timestamp_countdown = ? WHERE codice = ?", (timestamp_countdown, codice))
+        # Avvia il countdown se entrambi i numeri sono stati inseriti
+        if numero_penelope and numero_eric:
+            timestamp_countdown = int(time.time()) + 30  # 30 secondi da ora
+            c.execute("UPDATE stanze SET timestamp_countdown = ? WHERE codice = ?", (timestamp_countdown, codice))
+
         conn.commit()
         conn.close()
 
     chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if riga.strip()]
 
-    return render_template(
-        'stanza.html',
-        codice=codice,
-        ruolo=ruolo,
-        chat=chat_messaggi,
-        numero_penelope=numero_penelope,
-        numero_eric=numero_eric,
-        countdown=timestamp_countdown
-    )
+    return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat_messaggi,
+                           numero_penelope=numero_penelope, numero_eric=numero_eric)
+
+@app.route('/aggiorna_chat/<codice>')
+def aggiorna_chat(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return jsonify({"chat": []})
+
+    chat = stanza[0].split("\n")
+    chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
+
+    return jsonify({"chat": chat_messaggi})
 
 @app.route('/verifica_countdown/<codice>')
 def verifica_countdown(codice):
@@ -150,9 +157,7 @@ def verifica_countdown(codice):
     if not stanza or not stanza[0]:
         return jsonify({"countdown": None})
 
-    timestamp_countdown = stanza[0]
-    tempo_rimanente = max(0, timestamp_countdown - int(time.time()))  
-
+    tempo_rimanente = max(0, stanza[0] - int(time.time()))  
     return jsonify({"countdown": tempo_rimanente})
 
 if __name__ == '__main__':
