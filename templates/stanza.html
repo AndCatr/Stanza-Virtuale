@@ -6,48 +6,51 @@
     <title>Stanza Virtuale: {{ codice }}</title>
     <script>
         function aggiornaChat() {
-            fetch('/aggiorna_chat/{{ codice }}')
+            fetch("/aggiorna_chat/{{ codice }}")
                 .then(response => response.json())
                 .then(data => {
                     let chatDiv = document.getElementById("chat");
                     chatDiv.innerHTML = "";
-                    data.chat.forEach(msg => {
+                    data.chat.forEach(messaggio => {
                         let p = document.createElement("p");
-                        p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+                        p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
                         chatDiv.appendChild(p);
                     });
 
-                    if (data.completa) {
+                    if (data.chat_bloccata) {
                         document.getElementById("messaggio").disabled = true;
-                        document.getElementById("inviaMessaggio").disabled = true;
-                        document.getElementById("countdown").style.display = "block";
-                        avviaCountdown(30);
+                        document.getElementById("btnInvia").disabled = true;
                     }
                 });
+
+            setTimeout(aggiornaChat, 3000);
         }
 
-        function avviaCountdown(secondi) {
-            let countdownElement = document.getElementById("countdown");
-            let timer = setInterval(() => {
-                countdownElement.innerText = `La stanza si autodistruggerà in ${secondi} secondi...`;
-                secondi--;
-                if (secondi < 0) {
-                    clearInterval(timer);
-                    window.location.href = "/";
-                }
-            }, 1000);
-        }
-
-        setInterval(aggiornaChat, 3000);
+        window.onload = aggiornaChat;
     </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
+    <p>Stato: <strong>aperta</strong></p>
+
+    <h2>Chat</h2>
     <div id="chat"></div>
-    
-    <input type="text" id="messaggio" name="messaggio">
-    <button id="inviaMessaggio">Invia</button>
-    
-    <p id="countdown" style="display:none;"></p>
+
+    {% if not chat_bloccata %}
+    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+        <input type="text" id="messaggio" name="messaggio" required>
+        <button type="submit" id="btnInvia">Invia</button>
+    </form>
+    {% else %}
+    <p>La chat è stata bloccata.</p>
+    {% endif %}
+
+    <h2>Inserisci il tuo numero</h2>
+    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+        <label for="numero">Numero:</label>
+        <input type="text" name="numero" required>
+        <button type="submit">Invia</button>
+    </form>
+
 </body>
 </html>
