@@ -1,67 +1,27 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Stanza Virtuale</title>
-    <script>
-        function aggiornaChat() {
-            fetch("/aggiorna_chat/{{ codice }}")
+<script>
+    function aggiornaChat() {
+        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
             .then(response => response.json())
             .then(data => {
                 let chatBox = document.getElementById("chat");
                 chatBox.innerHTML = "";
                 data.chat.forEach(msg => {
-                    let item = document.createElement("li");
-                    item.innerHTML = msg;
-                    chatBox.appendChild(item);
+                    let p = document.createElement("p");
+                    p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+                    chatBox.appendChild(p);
                 });
             });
-        }
+    }
 
-        function inviaChat() {
-            let messaggio = document.getElementById("messaggio").value;
-            fetch("/invia_chat/{{ codice }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: "messaggio=" + messaggio
-            }).then(() => {
-                document.getElementById("messaggio").value = "";
-            });
-        }
-
-        function aggiornaNumeri() {
-            fetch("/aggiorna_numeri/{{ codice }}")
+    function aggiornaNumeri() {
+        fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
             .then(response => response.json())
             .then(data => {
-                document.getElementById("numero_penelope").innerText = data.numero_penelope;
-                document.getElementById("numero_eric").innerText = data.numero_eric;
+                document.getElementById("num_penelope").innerText = data.numero_penelope;
+                document.getElementById("num_eric").innerText = data.numero_eric;
             });
-        }
+    }
 
-        function aggiornaCountdown() {
-            fetch("/verifica_countdown/{{ codice }}")
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("countdown").innerText = data.countdown ? `Tempo rimanente: ${data.countdown} secondi` : "Attesa numeri...";
-            });
-        }
-
-        setInterval(aggiornaChat, 2000);
-        setInterval(aggiornaNumeri, 2000);
-        setInterval(aggiornaCountdown, 1000);
-    </script>
-</head>
-<body>
-    <h1>Stanza Virtuale: {{ codice }}</h1>
-    <h2>Chat</h2>
-    <ul id="chat"></ul>
-    <input type="text" id="messaggio" placeholder="Scrivi un messaggio">
-    <button onclick="inviaChat()">Invia</button>
-
-    <h2>Numeri di telefono</h2>
-    <p>Penelope: <span id="numero_penelope">{{ numero_penelope }}</span></p>
-    <p>Eric: <span id="numero_eric">{{ numero_eric }}</span></p>
-
-    <h2>Countdown</h2>
-    <p id="countdown">{{ countdown }}</p>
-</body>
-</html>
+    setInterval(aggiornaChat, 2000);
+    setInterval(aggiornaNumeri, 2000);
+</script>
