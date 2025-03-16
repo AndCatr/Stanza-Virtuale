@@ -99,6 +99,11 @@
         <button type="submit" id="btn_messaggio">Invia</button>
     </form>
 
+    <form action="{{ url_for('ingresso') }}" method="POST">
+    <input type="text" name="codice_accesso" required>
+    <button type="submit">Accedi</button>
+</form>
+    
     <h2>Numeri di telefono</h2>
     <p><strong>Numero di Penelope:</strong> <span id="numero_penelope">{{ numero_penelope if numero_penelope else "Non ancora inserito" }}</span></p>
     <p><strong>Numero di Eric:</strong> <span id="numero_eric">{{ numero_eric if numero_eric else "Non ancora inserito" }}</span></p>
