@@ -31,6 +31,7 @@ init_db()
 def home():
     if request.method == 'POST':
         codice = genera_codice_stanza()
+        session.clear()  # Rimuove qualsiasi ruolo predefinito
         session['codice'] = codice
 
         conn = sqlite3.connect('stanze.db')
@@ -67,6 +68,7 @@ def ingresso():
         print("❌ Errore: stanza non trovata!")
         return "Stanza non trovata!", 404
 
+    session.clear()  # Reset del ruolo
     if codice_accesso.startswith('59'):
         session['ruolo'] = 'Penelope'
     elif codice_accesso.startswith('33'):
@@ -93,10 +95,8 @@ def stanza(codice):
     chat, numero_penelope, numero_eric, timestamp_countdown = stanza
 
     # Gestione chat
-    if request.method == 'POST' and 'messaggio' in request.form:
+    if request.method == 'POST' and 'messaggio' in request.form and numero_penelope and numero_eric:
         messaggio = request.form['messaggio']
-        ruolo = session.get('ruolo', '')
-
         conn = sqlite3.connect('stanze.db')
         c = conn.cursor()
         chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  
@@ -107,7 +107,6 @@ def stanza(codice):
     # Gestione numeri di telefono
     if request.method == 'POST' and 'numero' in request.form:
         numero = request.form['numero']
-
         conn = sqlite3.connect('stanze.db')
         c = conn.cursor()
         if ruolo == 'Penelope':
@@ -125,26 +124,9 @@ def stanza(codice):
         conn.commit()
         conn.close()
 
-    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if riga.strip()]
-
-    return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat_messaggi,
-                           numero_penelope=numero_penelope, numero_eric=numero_eric)
-
-@app.route('/aggiorna_chat/<codice>')
-def aggiorna_chat(codice):
-    conn = sqlite3.connect('stanze.db')
-    c = conn.cursor()
-    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
-    stanza = c.fetchone()
-    conn.close()
-
-    if not stanza:
-        return jsonify({"chat": []})
-
-    chat = stanza[0].split("\n")
-    chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
-
-    return jsonify({"chat": chat_messaggi})
+    return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat.split("\n"),
+                           numero_penelope=numero_penelope, numero_eric=numero_eric,
+                           countdown=timestamp_countdown if timestamp_countdown else "Attesa numeri...")
 
 @app.route('/verifica_countdown/<codice>')
 def verifica_countdown(codice):
