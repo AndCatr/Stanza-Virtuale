@@ -93,54 +93,24 @@ def stanza(codice):
         return "Stanza non trovata!", 404
 
     chat, numero_penelope, numero_eric, timestamp_countdown = stanza
-
-    # Gestione chat
-    if request.method == 'POST' and 'messaggio' in request.form and numero_penelope and numero_eric:
-        messaggio = request.form['messaggio']
-        conn = sqlite3.connect('stanze.db')
-        c = conn.cursor()
-        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  
-        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
-        conn.commit()
-        conn.close()
-
-    # Gestione numeri di telefono
-    if request.method == 'POST' and 'numero' in request.form:
-        numero = request.form['numero']
-        conn = sqlite3.connect('stanze.db')
-        c = conn.cursor()
-        if ruolo == 'Penelope':
-            c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
-            numero_penelope = numero  
-        elif ruolo == 'Eric':
-            c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
-            numero_eric = numero  
-
-        # Avvia il countdown se entrambi i numeri sono stati inseriti
-        if numero_penelope and numero_eric:
-            timestamp_countdown = int(time.time()) + 30  # 30 secondi da ora
-            c.execute("UPDATE stanze SET timestamp_countdown = ? WHERE codice = ?", (timestamp_countdown, codice))
-
-        conn.commit()
-        conn.close()
+    chat = chat if chat else ""  # Evita errori su .split("\n")
 
     return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat.split("\n"),
                            numero_penelope=numero_penelope, numero_eric=numero_eric,
                            countdown=timestamp_countdown if timestamp_countdown else "Attesa numeri...")
 
-@app.route('/verifica_countdown/<codice>')
-def verifica_countdown(codice):
+@app.route('/aggiorna_chat/<codice>')
+def aggiorna_chat(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-    c.execute("SELECT timestamp_countdown FROM stanze WHERE codice = ?", (codice,))
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
 
-    if not stanza or not stanza[0]:
-        return jsonify({"countdown": None})
+    if not stanza:
+        return jsonify({"chat": []})
 
-    tempo_rimanente = max(0, stanza[0] - int(time.time()))  
-    return jsonify({"countdown": tempo_rimanente})
+    chat = stanza[0] if stanza[0] else ""
+    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if ": " in riga]
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
+    return jsonify({"chat": chat_messaggi})
