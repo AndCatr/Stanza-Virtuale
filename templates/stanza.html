@@ -39,10 +39,10 @@
     </div>
 
     <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
-        <label for="messaggio">Messaggio:</label>
-        <input type="text" name="messaggio" required>
-        <button type="submit">Invia</button>
-    </form>
+    <label for="numero">Numero:</label>
+    <input type="text" name="numero" id="input_numero" required>
+    <button type="submit" id="btn_numero">Invia</button>
+</form>
 
     <h2>Numeri di telefono</h2>
 <p><strong>Numero di Penelope:</strong> <span id="numero_penelope">{{ numero_penelope if numero_penelope else "Non ancora inserito" }}</span></p>
