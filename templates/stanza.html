@@ -1,39 +1,44 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stanza Virtuale: {{ codice }}</title>
+    <title>Stanza Virtuale</title>
     <script>
-        function aggiornaCountdown() {
-            fetch("/verifica_countdown/{{ codice }}")
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("countdown").innerText = data.countdown !== null ? data.countdown + "s" : "Attesa numeri...";
-                    if (data.countdown > 0) {
-                        setTimeout(aggiornaCountdown, 1000);
-                    }
+        function aggiornaChat() {
+            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                let chatBox = document.getElementById("chat");
+                chatBox.innerHTML = "";
+                data.chat.forEach(msg => {
+                    let item = document.createElement("li");
+                    item.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+                    chatBox.appendChild(item);
                 });
+            });
         }
 
-        document.addEventListener("DOMContentLoaded", aggiornaCountdown);
+        setInterval(aggiornaChat, 3000);
     </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
-
+    
     <h2>Chat</h2>
-    <ul>
-        {% for ruolo, messaggio in chat %}
-            <li><strong>{{ ruolo }}:</strong> {{ messaggio }}</li>
+    <ul id="chat">
+        {% for msg in chat %}
+            <li><strong>{{ msg[0] }}:</strong> {{ msg[1] }}</li>
         {% endfor %}
     </ul>
+
     <form method="post">
         <input type="text" name="messaggio" placeholder="Scrivi un messaggio">
         <button type="submit">Invia</button>
     </form>
 
-    <h2>Countdown</h2>
-    <p id="countdown">Attesa numeri...</p>
+    <h2>Inserisci il tuo numero</h2>
+    <form method="post">
+        <input type="text" name="numero" placeholder="Numero di telefono">
+        <button type="submit">Invia</button>
+    </form>
 </body>
 </html>
