@@ -7,71 +7,84 @@
     <script>
         function aggiornaChat() {
             fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
-            .then(response => response.json())
-            .then(data => {
-                let chatBox = document.getElementById("chat");
-                chatBox.innerHTML = "";
-                data.chat.forEach(messaggio => {
-                    let p = document.createElement("p");
-                    p.innerText = messaggio;
-                    chatBox.appendChild(p);
-                });
-            });
+                .then(response => response.json())
+                .then(data => {
+                    let chatDiv = document.getElementById("chat");
+                    chatDiv.innerHTML = "";  // Pulisce la chat prima di ricaricarla
+
+                    data.chat.forEach(messaggio => {
+                        let p = document.createElement("p");
+                        p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
+                        chatDiv.appendChild(p);
+                    });
+                })
+                .catch(error => console.error("Errore aggiornamento chat:", error));
         }
 
         function aggiornaNumeri() {
             fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("numero_penelope").innerText = data.numero_penelope;
-                document.getElementById("numero_eric").innerText = data.numero_eric;
-                
-                if (data.numero_penelope !== "Non ancora inserito" && data.numero_eric !== "Non ancora inserito") {
-                    document.getElementById("input_numero").style.display = "none"; 
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("numero_penelope").innerText = data.numero_penelope;
+                    document.getElementById("numero_eric").innerText = data.numero_eric;
+                })
+                .catch(error => console.error("Errore aggiornamento numeri:", error));
         }
 
-        function aggiornaCountdown() {
-            fetch("{{ url_for('verifica_countdown', codice=codice) }}")
-            .then(response => response.json())
-            .then(data => {
-                let countdown = document.getElementById("countdown");
-                if (data.countdown !== null) {
-                    countdown.innerText = `Tempo rimanente: ${data.countdown} secondi`;
-                } else {
-                    countdown.innerText = "Il countdown inizierà quando entrambi i numeri saranno inseriti.";
-                }
-            });
+        function controllaBlocco() {
+            fetch("{{ url_for('controlla_blocco', codice=codice) }}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.blocco_numero_penelope && "{{ ruolo }}" === "Penelope") {
+                        document.getElementById("input_numero").disabled = true;
+                        document.getElementById("btn_numero").disabled = true;
+                    }
+                    if (data.blocco_numero_eric && "{{ ruolo }}" === "Eric") {
+                        document.getElementById("input_numero").disabled = true;
+                        document.getElementById("btn_numero").disabled = true;
+                    }
+                    if (data.blocco_chat) {
+                        document.getElementById("input_messaggio").disabled = true;
+                        document.getElementById("btn_messaggio").disabled = true;
+                    }
+                })
+                .catch(error => console.error("Errore nel controllo del blocco:", error));
         }
 
-        setInterval(aggiornaChat, 2000);
+        // Aggiorna la chat e i numeri ogni 3 secondi
+        setInterval(aggiornaChat, 3000);
         setInterval(aggiornaNumeri, 3000);
-        setInterval(aggiornaCountdown, 1000);
+        setInterval(controllaBlocco, 3000);
     </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
+    <p>Stato: <strong>aperta</strong></p>
 
     <h2>Chat</h2>
-    <div id="chat"></div>
-    <form method="POST">
-        <input type="text" name="messaggio" placeholder="Scrivi un messaggio" required>
-        <button type="submit">Invia</button>
+    <div id="chat">
+        {% for messaggio in chat %}
+            {% if messaggio|length == 2 %}
+                <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+        <label for="messaggio">Messaggio:</label>
+        <input type="text" name="messaggio" id="input_messaggio" required>
+        <button type="submit" id="btn_messaggio">Invia</button>
     </form>
 
     <h2>Numeri di telefono</h2>
-    <p>Penelope: <span id="numero_penelope">{{ numero_penelope if numero_penelope else "Non ancora inserito" }}</span></p>
-    <p>Eric: <span id="numero_eric">{{ numero_eric if numero_eric else "Non ancora inserito" }}</span></p>
+    <p><strong>Numero di Penelope:</strong> <span id="numero_penelope">{{ numero_penelope if numero_penelope else "Non ancora inserito" }}</span></p>
+    <p><strong>Numero di Eric:</strong> <span id="numero_eric">{{ numero_eric if numero_eric else "Non ancora inserito" }}</span></p>
 
-    <div id="input_numero">
-        <form method="POST">
-            <input type="text" name="numero" placeholder="Inserisci il tuo numero">
-            <button type="submit">Invia</button>
-        </form>
-    </div>
-
-    <h2>Countdown</h2>
-    <p id="countdown">Il countdown inizierà quando entrambi i numeri saranno inseriti.</p>
+    <h3>Inserisci il tuo numero</h3>
+    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+        <label for="numero">Numero:</label>
+        <input type="text" name="numero" id="input_numero" required>
+        <button type="submit" id="btn_numero">Invia</button>
+    </form>
 </body>
 </html>
