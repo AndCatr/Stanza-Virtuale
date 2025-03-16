@@ -152,5 +152,22 @@ def aggiorna_chat(codice):
 
     return jsonify({"chat": chat_messaggi})
 
+@app.route('/aggiorna_numeri/<codice>')
+def aggiorna_numeri(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return jsonify({"numero_penelope": "", "numero_eric": ""})
+
+    numero_penelope, numero_eric = stanza
+    return jsonify({
+        "numero_penelope": numero_penelope if numero_penelope else "Non ancora inserito",
+        "numero_eric": numero_eric if numero_eric else "Non ancora inserito"
+    })
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
