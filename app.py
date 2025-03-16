@@ -40,8 +40,7 @@ def home():
         conn.commit()
         conn.close()
 
-        print("✅ Creazione stanza:", codice)
-        return render_template('home.html', codice=codice)
+        return redirect(url_for('stanza', codice=codice))
 
     return render_template('home.html', codice=None)
 
@@ -88,23 +87,17 @@ def stanza(codice):
 
     chat, numero_penelope, numero_eric, countdown_start = stanza
 
-    # Gestione chat
+    # Inserimento chat
     if request.method == 'POST' and 'messaggio' in request.form:
         messaggio = request.form['messaggio']
 
         conn = sqlite3.connect('stanze.db')
         c = conn.cursor()
-        c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
-        result = c.fetchone()
-
-        chat = result[0] if result and result[0] else ""  
-        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  
-
-        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
+        c.execute("UPDATE stanze SET chat = chat || ? WHERE codice = ?", (f"\n{ruolo}: {messaggio}", codice))
         conn.commit()
         conn.close()
 
-    # Gestione numeri di telefono
+    # Inserimento numeri di telefono
     if request.method == 'POST' and 'numero' in request.form:
         numero = request.form['numero']
 
@@ -112,53 +105,59 @@ def stanza(codice):
         c = conn.cursor()
         if ruolo == 'Penelope':
             c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
-            numero_penelope = numero  
         elif ruolo == 'Eric':
             c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
-            numero_eric = numero  
         
-        # Se entrambi i numeri sono stati inseriti, avvia il countdown
+        # Verifica se entrambi i numeri sono inseriti e avvia il countdown
         c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
         num_pen, num_eric = c.fetchone()
 
         if num_pen and num_eric and not countdown_start:
-            countdown_start = int(time.time())  # Registra l'ora di inizio del countdown
+            countdown_start = int(time.time())  # Avvio del countdown
             c.execute("UPDATE stanze SET countdown_start = ? WHERE codice = ?", (countdown_start, codice))
 
         conn.commit()
         conn.close()
 
-    # Calcolo del tempo rimanente per il countdown
-    tempo_rimanente = None
-    if countdown_start:
-        tempo_rimanente = max(0, 30 - (int(time.time()) - countdown_start))
-
-    # Dividere la chat in coppie (ruolo, messaggio)
-    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if riga.strip()]
+    # Chat formattata
+    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if ": " in riga]
 
     return render_template(
         'stanza.html',
         codice=codice,
         ruolo=ruolo,
         chat=chat_messaggi,
-        numero_penelope=numero_penelope,
-        numero_eric=numero_eric,
-        tempo_rimanente=tempo_rimanente
+        numero_penelope=numero_penelope or "Non ancora inserito",
+        numero_eric=numero_eric or "Non ancora inserito",
+        countdown_start=countdown_start
     )
 
-@app.route('/verifica_countdown/<codice>')
-def verifica_countdown(codice):
+@app.route('/aggiorna_stato/<codice>')
+def aggiorna_stato(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-    c.execute("SELECT countdown_start FROM stanze WHERE codice = ?", (codice,))
+    c.execute("SELECT chat, numero_penelope, numero_eric, countdown_start FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
 
-    if not stanza or not stanza[0]:
-        return jsonify({"countdown": None})
+    if not stanza:
+        return jsonify({"errore": "Stanza non trovata!"})
 
-    tempo_rimanente = max(0, 30 - (int(time.time()) - stanza[0]))
-    return jsonify({"countdown": tempo_rimanente})
+    chat, numero_penelope, numero_eric, countdown_start = stanza
+    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if ": " in riga]
+
+    # Calcolo countdown
+    tempo_rimanente = None
+    if countdown_start:
+        tempo_rimanente = max(0, 30 - (int(time.time()) - countdown_start))
+
+    return jsonify({
+        "chat": chat_messaggi,
+        "numero_penelope": numero_penelope or "Non ancora inserito",
+        "numero_eric": numero_eric or "Non ancora inserito",
+        "tempo_rimanente": tempo_rimanente,
+        "blocco": bool(tempo_rimanente == 0)
+    })
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
