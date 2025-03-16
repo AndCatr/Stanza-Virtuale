@@ -95,27 +95,18 @@ def stanza(codice):
         messaggio = request.form['messaggio']
         ruolo = session.get('ruolo', '')
 
-        # Recupera la chat esistente dal database
         conn = sqlite3.connect('stanze.db')
         c = conn.cursor()
         c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
         result = c.fetchone()
         
-        if result:
-            chat = result[0] if result[0] else ""  # Se la chat è None, inizializzala come stringa vuota
-        else:
-            chat = ""
+        chat = result[0] if result and result[0] else ""  
+        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  
 
-        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  # Aggiungi il nuovo messaggio
-
-        # Salva la chat aggiornata nel database
         c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
         conn.commit()
         conn.close()
-        
-        print(f"💬 Messaggio ricevuto: {messaggio}")
-        print(f"📄 Chat prima dell'aggiornamento: {chat}")
-    
+
     # Gestione numeri di telefono
     if request.method == 'POST' and 'numero' in request.form:
         numero = request.form['numero']
@@ -124,8 +115,10 @@ def stanza(codice):
         c = conn.cursor()
         if ruolo == 'Penelope':
             c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
-        else:
+            numero_penelope = numero  # Aggiorna la variabile locale
+        elif ruolo == 'Eric':
             c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
+            numero_eric = numero  # Aggiorna la variabile locale
         conn.commit()
         conn.close()
 
