@@ -17,6 +17,20 @@
             });
         }
 
+        function inviaNumero() {
+            let numero = document.getElementById("numero").value;
+            fetch("/invia_numero/{{ codice }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "numero=" + numero
+            }).then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                    document.getElementById("numero").value = "";
+                }
+            });
+        }
+
         function aggiornaCountdown() {
             fetch("/verifica_countdown/{{ codice }}")
             .then(response => response.json())
@@ -38,19 +52,14 @@
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
+    <h2>Ruolo: {{ ruolo }}</h2>
 
     <h2>Chat</h2>
-    <ul id="chat">
-        {% for msg in chat %}
-            <li><strong>{{ msg.split(': ')[0] }}:</strong> {{ msg.split(': ')[1] }}</li>
-        {% endfor %}
-    </ul>
+    <ul id="chat"></ul>
 
     <h2>Inserisci il tuo numero</h2>
-    <form method="post">
-        <input type="text" name="numero" placeholder="Numero di telefono">
-        <button type="submit">Invia</button>
-    </form>
+    <input type="text" id="numero" placeholder="Numero di telefono">
+    <button onclick="inviaNumero()">Invia</button>
 
     <h2>Countdown</h2>
     <p id="countdown">{{ countdown }}</p>
