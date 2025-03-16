@@ -4,58 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
-    <script>
-        function aggiornaChat() {
-            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    let chatDiv = document.getElementById("chat");
-                    chatDiv.innerHTML = "";  // Pulisce la chat prima di ricaricarla
+   <script>
+    function aggiornaChat() {
+        fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                let chatDiv = document.getElementById("chat");
+                chatDiv.innerHTML = "";  // Pulisce la chat prima di ricaricarla
 
-                    data.chat.forEach(messaggio => {
-                        let p = document.createElement("p");
-                        p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
-                        chatDiv.appendChild(p);
-                    });
-                })
-                .catch(error => console.error("Errore aggiornamento chat:", error));
-        }
+                data.chat.forEach(messaggio => {
+                    let p = document.createElement("p");
+                    p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
+                    chatDiv.appendChild(p);
+                });
+            })
+            .catch(error => console.error("Errore aggiornamento chat:", error));
+    }
 
-        function aggiornaNumeri() {
-            fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("numero_penelope").innerText = data.numero_penelope;
-                    document.getElementById("numero_eric").innerText = data.numero_eric;
-                })
-                .catch(error => console.error("Errore aggiornamento numeri:", error));
-        }
+    function aggiornaNumeri() {
+        fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("numero_penelope").innerText = data.numero_penelope;
+                document.getElementById("numero_eric").innerText = data.numero_eric;
+            })
+            .catch(error => console.error("Errore aggiornamento numeri:", error));
+    }
 
-        function controllaBlocco() {
-            fetch("{{ url_for('controlla_blocco', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.blocco_numero_penelope && "{{ ruolo }}" === "Penelope") {
-                        document.getElementById("input_numero").disabled = true;
-                        document.getElementById("btn_numero").disabled = true;
-                    }
-                    if (data.blocco_numero_eric && "{{ ruolo }}" === "Eric") {
-                        document.getElementById("input_numero").disabled = true;
-                        document.getElementById("btn_numero").disabled = true;
-                    }
-                    if (data.blocco_chat) {
-                        document.getElementById("input_messaggio").disabled = true;
-                        document.getElementById("btn_messaggio").disabled = true;
-                    }
-                })
-                .catch(error => console.error("Errore nel controllo del blocco:", error));
-        }
+    function controllaBlocco() {
+        fetch("{{ url_for('controlla_blocco', codice=codice) }}")
+            .then(response => response.json())
+            .then(data => {
+                if (data.blocco_numero_penelope && "{{ ruolo }}" === "Penelope") {
+                    document.getElementById("input_numero").disabled = true;
+                    document.getElementById("btn_numero").disabled = true;
+                }
+                if (data.blocco_numero_eric && "{{ ruolo }}" === "Eric") {
+                    document.getElementById("input_numero").disabled = true;
+                    document.getElementById("btn_numero").disabled = true;
+                }
+                if (data.blocco_chat) {
+                    document.getElementById("input_messaggio").disabled = true;
+                    document.getElementById("btn_messaggio").disabled = true;
+                }
+            })
+            .catch(error => console.error("Errore nel controllo del blocco:", error));
+    }
 
-        // Aggiorna la chat e i numeri ogni 3 secondi
-        setInterval(aggiornaChat, 3000);
-        setInterval(aggiornaNumeri, 3000);
-        setInterval(controllaBlocco, 3000);
-    </script>
+    // Aggiorna chat, numeri e blocchi ogni 2 secondi
+    setInterval(() => {
+        aggiornaChat();
+        aggiornaNumeri();
+        controllaBlocco();
+    }, 2000);
+</script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
