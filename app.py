@@ -120,18 +120,18 @@ def stanza(codice):
     return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat_messaggi,
                            numero_penelope=numero_penelope, numero_eric=numero_eric, countdown=timestamp_countdown)
 
-@app.route('/aggiorna_chat/<codice>')
-def aggiorna_chat(codice):
+@app.route('/aggiorna_numeri/<codice>')
+def aggiorna_numeri(codice):
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
 
-    chat = stanza[0] if stanza else ""
-    chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if ": " in riga]
-
-    return jsonify({"chat": chat_messaggi})
+    return jsonify({
+        "numero_penelope": stanza[0] if stanza[0] else "Non ancora inserito",
+        "numero_eric": stanza[1] if stanza[1] else "Non ancora inserito"
+    })
 
 @app.route('/verifica_countdown/<codice>')
 def verifica_countdown(codice):
@@ -141,22 +141,17 @@ def verifica_countdown(codice):
     stanza = c.fetchone()
     conn.close()
 
-    if not stanza:
-        return jsonify({"countdown": None})
-
-    numero_penelope, numero_eric, timestamp_countdown = stanza
-
-    if numero_penelope and numero_eric and not timestamp_countdown:
+    if stanza[0] and stanza[1] and not stanza[2]:
         timestamp_countdown = int(time.time()) + 30
         conn = sqlite3.connect('stanze.db')
         c = conn.cursor()
         c.execute("UPDATE stanze SET timestamp_countdown = ? WHERE codice = ?", (timestamp_countdown, codice))
         conn.commit()
         conn.close()
+    else:
+        timestamp_countdown = stanza[2]
 
-    tempo_rimanente = max(0, timestamp_countdown - int(time.time())) if timestamp_countdown else None
-
-    return jsonify({"countdown": tempo_rimanente})
+    return jsonify({"countdown": max(0, timestamp_countdown - int(time.time())) if timestamp_countdown else None})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
