@@ -4,7 +4,7 @@
     <title>Stanza Virtuale</title>
     <script>
         function aggiornaChat() {
-            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+            fetch("/aggiorna_chat/{{ codice }}")
             .then(response => response.json())
             .then(data => {
                 let chatBox = document.getElementById("chat");
@@ -18,7 +18,7 @@
         }
 
         function aggiornaCountdown() {
-            fetch("{{ url_for('verifica_countdown', codice=codice) }}")
+            fetch("/verifica_countdown/{{ codice }}")
             .then(response => response.json())
             .then(data => {
                 let countdownBox = document.getElementById("countdown");
