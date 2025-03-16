@@ -168,6 +168,27 @@ def aggiorna_numeri(codice):
         "numero_penelope": numero_penelope if numero_penelope else "Non ancora inserito",
         "numero_eric": numero_eric if numero_eric else "Non ancora inserito"
     })
+@app.route('/controlla_blocco/<codice>')
+def controlla_blocco(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if not stanza:
+        return jsonify({"blocco_numero": False, "blocco_chat": False})
+
+    numero_penelope, numero_eric = stanza
+    blocco_numero_penelope = bool(numero_penelope)
+    blocco_numero_eric = bool(numero_eric)
+    blocco_chat = blocco_numero_penelope and blocco_numero_eric  # Se entrambi i numeri sono inseriti, blocca la chat
+
+    return jsonify({
+        "blocco_numero_penelope": blocco_numero_penelope,
+        "blocco_numero_eric": blocco_numero_eric,
+        "blocco_chat": blocco_chat
+    })
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
