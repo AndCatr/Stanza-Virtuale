@@ -1,16 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import random
 import string
 import sqlite3
+import time
 
 app = Flask(__name__)
-app.secret_key = 'chiave_super_segreta'  # Cambia con una chiave sicura
+app.secret_key = 'chiave_super_segreta'
 
-# Funzione per generare un codice stanza casuale
 def genera_codice_stanza():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-# Inizializza il database
 def init_db():
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
@@ -18,7 +17,8 @@ def init_db():
                     codice TEXT PRIMARY KEY,
                     chat TEXT,
                     numero_penelope TEXT,
-                    numero_eric TEXT
+                    numero_eric TEXT,
+                    countdown_start INTEGER
                  )''')
     conn.commit()
     conn.close()
@@ -33,12 +33,11 @@ def home():
 
         conn = sqlite3.connect('stanze.db')
         c = conn.cursor()
-        c.execute("INSERT INTO stanze (codice, chat, numero_penelope, numero_eric) VALUES (?, ?, ?, ?)",
-                  (codice, "", "", ""))
+        c.execute("INSERT INTO stanze (codice, chat, numero_penelope, numero_eric, countdown_start) VALUES (?, ?, ?, ?, ?)",
+                  (codice, "", "", "", 0))
         conn.commit()
         conn.close()
 
-        print("✅ Creazione stanza:", codice)
         return render_template('home.html', codice=codice)
 
     return render_template('home.html', codice=None)
@@ -46,23 +45,17 @@ def home():
 @app.route('/ingresso', methods=['POST'])
 def ingresso():
     codice_accesso = request.form.get('codice_accesso')
-
     if not codice_accesso or len(codice_accesso) < 7:
         return "Codice non valido!", 403
 
     codice_stanza = codice_accesso[2:]
-
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
     c.execute("SELECT codice FROM stanze WHERE codice = ?", (codice_stanza,))
     stanza = c.fetchone()
     conn.close()
 
-    print("🔍 Codice inserito:", codice_accesso)
-    print("📌 Codice stanza estratto:", codice_stanza)
-    
     if not stanza:
-        print("❌ Errore: stanza non trovata!")
         return "Stanza non trovata!", 404
 
     if codice_accesso.startswith('59'):
@@ -78,7 +71,6 @@ def ingresso():
 @app.route('/stanza/<codice>', methods=['GET', 'POST'])
 def stanza(codice):
     ruolo = session.get('ruolo')
-
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
     c.execute("SELECT chat, numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
@@ -90,51 +82,35 @@ def stanza(codice):
 
     chat, numero_penelope, numero_eric = stanza
 
-    # Gestione chat
-    if request.method == 'POST' and 'messaggio' in request.form:
-        messaggio = request.form['messaggio']
-        ruolo = session.get('ruolo', '')
+    if request.method == 'POST':
+        if 'messaggio' in request.form:
+            messaggio = request.form['messaggio']
+            conn = sqlite3.connect('stanze.db')
+            c = conn.cursor()
+            c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+            result = c.fetchone()
+            chat = result[0] if result and result[0] else ""
+            chat += f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"
+            c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
+            conn.commit()
+            conn.close()
 
-        conn = sqlite3.connect('stanze.db')
-        c = conn.cursor()
-        c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
-        result = c.fetchone()
-        
-        chat = result[0] if result and result[0] else ""  
-        chat = chat + f"\n{ruolo}: {messaggio}" if chat else f"{ruolo}: {messaggio}"  
+        if 'numero' in request.form:
+            numero = request.form['numero']
+            conn = sqlite3.connect('stanze.db')
+            c = conn.cursor()
+            if ruolo == 'Penelope':
+                c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
+                numero_penelope = numero
+            elif ruolo == 'Eric':
+                c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
+                numero_eric = numero
+            conn.commit()
+            conn.close()
 
-        c.execute("UPDATE stanze SET chat = ? WHERE codice = ?", (chat, codice))
-        conn.commit()
-        conn.close()
-
-    # Gestione numeri di telefono
-    if request.method == 'POST' and 'numero' in request.form:
-        numero = request.form['numero']
-
-        conn = sqlite3.connect('stanze.db')
-        c = conn.cursor()
-        if ruolo == 'Penelope':
-            c.execute("UPDATE stanze SET numero_penelope = ? WHERE codice = ?", (numero, codice))
-            numero_penelope = numero  # Aggiorna la variabile locale
-        elif ruolo == 'Eric':
-            c.execute("UPDATE stanze SET numero_eric = ? WHERE codice = ?", (numero, codice))
-            numero_eric = numero  # Aggiorna la variabile locale
-        conn.commit()
-        conn.close()
-
-    # Dividere la chat in coppie (ruolo, messaggio)
     chat_messaggi = [riga.split(": ", 1) for riga in chat.split("\n") if riga.strip()]
-
-    return render_template(
-        'stanza.html',
-        codice=codice,
-        ruolo=ruolo,
-        chat=chat_messaggi,
-        numero_penelope=numero_penelope,
-        numero_eric=numero_eric
-    )
-
-from flask import jsonify
+    return render_template('stanza.html', codice=codice, ruolo=ruolo, chat=chat_messaggi,
+                           numero_penelope=numero_penelope, numero_eric=numero_eric)
 
 @app.route('/aggiorna_chat/<codice>')
 def aggiorna_chat(codice):
@@ -143,13 +119,8 @@ def aggiorna_chat(codice):
     c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
-
-    if not stanza:
-        return jsonify({"chat": []})
-
-    chat = stanza[0].split("\n")
+    chat = stanza[0].split("\n") if stanza else []
     chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
-
     return jsonify({"chat": chat_messaggi})
 
 @app.route('/aggiorna_numeri/<codice>')
@@ -159,37 +130,31 @@ def aggiorna_numeri(codice):
     c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
-
-    if not stanza:
-        return jsonify({"numero_penelope": "", "numero_eric": ""})
-
-    numero_penelope, numero_eric = stanza
     return jsonify({
-        "numero_penelope": numero_penelope if numero_penelope else "Non ancora inserito",
-        "numero_eric": numero_eric if numero_eric else "Non ancora inserito"
+        "numero_penelope": stanza[0] if stanza[0] else "Non ancora inserito",
+        "numero_eric": stanza[1] if stanza[1] else "Non ancora inserito"
     })
 
-@app.route('/controlla_blocco/<codice>')
-def controlla_blocco(codice):
+@app.route('/start_timer/<codice>', methods=['POST'])
+def start_timer(codice):
+    timestamp = int(time.time())
     conn = sqlite3.connect('stanze.db')
     c = conn.cursor()
-    c.execute("SELECT numero_penelope, numero_eric FROM stanze WHERE codice = ?", (codice,))
+    c.execute("UPDATE stanze SET countdown_start = ? WHERE codice = ?", (timestamp, codice))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "start_time": timestamp})
+
+@app.route('/get_timer/<codice>')
+def get_timer(codice):
+    conn = sqlite3.connect('stanze.db')
+    c = conn.cursor()
+    c.execute("SELECT countdown_start FROM stanze WHERE codice = ?", (codice,))
     stanza = c.fetchone()
     conn.close()
-
-    if not stanza:
-        return jsonify({"blocco_numero_penelope": False, "blocco_numero_eric": False, "blocco_chat": False})
-
-    numero_penelope, numero_eric = stanza
-    blocco_numero_penelope = bool(numero_penelope)  # Se esiste, blocca l'input
-    blocco_numero_eric = bool(numero_eric)  # Se esiste, blocca l'input
-    blocco_chat = blocco_numero_penelope and blocco_numero_eric  # Blocca la chat se entrambi i numeri sono inseriti
-
-    return jsonify({
-        "blocco_numero_penelope": blocco_numero_penelope,
-        "blocco_numero_eric": blocco_numero_eric,
-        "blocco_chat": blocco_chat
-    })
+    if stanza and stanza[0]:
+        return jsonify({"start_time": stanza[0]})
+    return jsonify({"start_time": 0})
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
