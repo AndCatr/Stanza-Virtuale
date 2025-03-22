@@ -2,7 +2,55 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
+    <script>
+        function aggiornaChat() {
+            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+                .then(r => r.json())
+                .then(data => {
+                    let chatDiv = document.getElementById("chat");
+                    chatDiv.innerHTML = "";
+                    data.chat.forEach(m => {
+                        let p = document.createElement("p");
+                        p.innerHTML = `<strong>${m[0]}:</strong> ${m[1]}`;
+                        chatDiv.appendChild(p);
+                    });
+                });
+        }
+
+        function aggiornaNumeri() {
+            fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById("numero_penelope").innerText = data.numero_penelope;
+                    document.getElementById("numero_eric").innerText = data.numero_eric;
+                });
+        }
+
+        function controllaBlocco() {
+            fetch("{{ url_for('controlla_blocco', codice=codice) }}")
+                .then(r => r.json())
+                .then(data => {
+                    if (data.blocco_chat) {
+                        document.getElementById("input_messaggio").disabled = true;
+                        document.getElementById("btn_messaggio").disabled = true;
+                        document.getElementById("input_numero").disabled = true;
+                        document.getElementById("btn_numero").disabled = true;
+                    }
+                    const timerDisplay = document.getElementById("timerDisplay");
+                    if (data.countdown >= 0) {
+                        timerDisplay.textContent = data.countdown > 0 ? `Countdown: ${data.countdown} secondi...` : "Tempo scaduto!";
+                    }
+                });
+        }
+
+        setInterval(() => {
+            aggiornaChat();
+            aggiornaNumeri();
+            controllaBlocco();
+        }, 1000);
+    </script>
 </head>
 <body>
     <h1>Stanza Virtuale: {{ codice }}</h1>
@@ -16,7 +64,7 @@
         {% endfor %}
     </div>
 
-    <form method="POST" action="{{ url_for('stanza', codice=codice) }}">
+    <form method="POST">
         <input type="text" name="messaggio" id="input_messaggio" required>
         <button type="submit" id="btn_messaggio">Invia</button>
     </form>
@@ -25,80 +73,12 @@
     <p><strong>Numero di Penelope:</strong> <span id="numero_penelope">{{ numero_penelope }}</span></p>
     <p><strong>Numero di Eric:</strong> <span id="numero_eric">{{ numero_eric }}</span></p>
 
-    <h3>Inserisci il tuo numero</h3>
-    <form method="POST" action="{{ url_for('stanza', codice=codice) }}">
+    <form method="POST">
         <input type="text" name="numero" id="input_numero" required>
         <button type="submit" id="btn_numero">Invia</button>
     </form>
 
     <h2>Countdown</h2>
-    <p id="timerDisplay">Premi il pulsante per iniziare</p>
-    <button onclick="startCountdown()">Avvia Countdown</button>
-
-    <script>
-        let countdownStarted = false;
-
-        function aggiornaChat() {
-            fetch("/aggiorna_chat/{{ codice }}")
-                .then(r => r.json())
-                .then(data => {
-                    let chatDiv = document.getElementById("chat");
-                    chatDiv.innerHTML = "";
-                    data.chat.forEach(msg => {
-                        let p = document.createElement("p");
-                        p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
-                        chatDiv.appendChild(p);
-                    });
-                });
-        }
-
-        function aggiornaNumeri() {
-            fetch("/aggiorna_numeri/{{ codice }}")
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById("numero_penelope").textContent = data.numero_penelope;
-                    document.getElementById("numero_eric").textContent = data.numero_eric;
-                });
-        }
-
-        function checkTimer() {
-            fetch("/get_timer/{{ codice }}")
-                .then(r => r.json())
-                .then(data => {
-                    if (data.start_time > 0) {
-                        avviaCountdownDa(data.start_time);
-                    }
-                });
-        }
-
-        function startCountdown() {
-            fetch("/start_timer/{{ codice }}", { method: "POST" })
-                .then(() => checkTimer());
-        }
-
-        function avviaCountdownDa(startTimestamp) {
-            if (countdownStarted) return;
-            countdownStarted = true;
-            const display = document.getElementById("timerDisplay");
-
-            function update() {
-                const elapsed = Math.floor(Date.now() / 1000) - startTimestamp;
-                const remaining = 30 - elapsed;
-                if (remaining >= 0) {
-                    display.textContent = `Countdown: ${remaining} secondi...`;
-                    setTimeout(update, 1000);
-                } else {
-                    display.textContent = "Tempo scaduto!";
-                }
-            }
-            update();
-        }
-
-        setInterval(() => {
-            aggiornaChat();
-            aggiornaNumeri();
-            checkTimer();
-        }, 2000);
-    </script>
+    <p id="timerDisplay">Attesa numeri...</p>
 </body>
 </html>
