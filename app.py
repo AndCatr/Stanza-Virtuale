@@ -205,5 +205,30 @@ def verifica_countdown(codice):
 def cancellata():
     return "<h1 style='color:red; text-align:center; margin-top:20%'>Stanza distrutta</h1>"
 
+@app.route('/autodistrutta')
+def autodistrutta():
+    return '''
+    <!DOCTYPE html>
+    <html lang="it">
+    <head>
+        <meta charset="UTF-8">
+        <title>Stanza Distrutta</title>
+        <style>
+            body {
+                background-color: black;
+                color: red;
+                font-size: 40px;
+                text-align: center;
+                margin-top: 20%;
+                font-family: Arial, sans-serif;
+            }
+        </style>
+    </head>
+    <body>
+        <p>💥 Stanza distrutta 💥</p>
+    </body>
+    </html>
+    '''
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000)
