@@ -126,6 +126,10 @@ def stanza(codice):
         numero_eric=numero_eric
     )
 
+@app.route('/email/rossi')
+def email_rossi():
+    return render_template("email_rossi.html")
+
 @app.route('/aggiorna_chat/<codice>')
 def aggiorna_chat(codice):
     conn = sqlite3.connect(DB_PATH)
