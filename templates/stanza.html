@@ -121,11 +121,15 @@
         <h3>Casella email</h3>
         <ul>
             <li><strong>📥 Posta in arrivo</strong></li>
-            <li><div class="email-preview">
-                <strong>Da:</strong> Giovanni Rossi<br>
-                <strong>Oggetto:</strong> luogo di incontro<br>
-                <strong>Testo:</strong> ciao troviamo là
-            </div></li>
+            <li>
+    <a href="{{ url_for('email_rossi') }}" style="text-decoration: none; color: inherit;">
+        <div class="email-preview">
+            <strong>Da:</strong> Giovanni Rossi<br>
+            <strong>Oggetto:</strong> luogo di incontro<br>
+            <strong>Testo:</strong> ciao troviamo là
+        </div>
+    </a>
+</li>
             <li>📤 Inviata</li>
             <li>🗑️ Cestino</li>
             <li>⚠️ Spam</li>
