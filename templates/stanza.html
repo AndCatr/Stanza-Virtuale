@@ -1,93 +1,91 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <title>Stanza Virtuale: {{ codice }}</title>
-    <script>
-        function aggiornaChat() {
-            fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
-                .then(r => r.json())
-                .then(data => {
-                    const div = document.getElementById("chat");
-                    div.innerHTML = "";
-                    data.chat.forEach(msg => {
-                        const p = document.createElement("p");
-                        p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
-                        div.appendChild(p);
-                    });
-                });
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stanza Virtuale: {{ codice }}</title>
+  <script>
+    function aggiornaChat() {
+      fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
+        .then(response => response.json())
+        .then(data => {
+          const chatDiv = document.getElementById("chat");
+          chatDiv.innerHTML = "";
+          data.chat.forEach(msg => {
+            const p = document.createElement("p");
+            p.innerHTML = `<strong>${msg[0]}:</strong> ${msg[1]}`;
+            chatDiv.appendChild(p);
+          });
+        });
+    }
 
-        function aggiornaNumeri() {
-            fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById("numero_penelope").innerText = data.numero_penelope;
-                    document.getElementById("numero_eric").innerText = data.numero_eric;
-                });
-        }
+    function aggiornaNumeri() {
+      fetch("{{ url_for('aggiorna_numeri', codice=codice) }}")
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("numero_penelope").innerText = data.numero_penelope;
+          document.getElementById("numero_eric").innerText = data.numero_eric;
+        });
+    }
 
-        function controllaBlocco() {
-            fetch("{{ url_for('controlla_blocco', codice=codice) }}")
-                .then(r => r.json())
-                .then(data => {
-                    if (data.blocco_chat) {
-                        document.getElementById("input_messaggio").disabled = true;
-                        document.getElementById("btn_messaggio").disabled = true;
-                        document.getElementById("input_numero").disabled = true;
-                        document.getElementById("btn_numero").disabled = true;
-                    }
-                });
-        }
+    function controllaBlocco() {
+      fetch("{{ url_for('controlla_blocco', codice=codice) }}")
+        .then(response => response.json())
+        .then(data => {
+          if (data.blocco_numero_penelope && "{{ ruolo }}" === "Penelope") {
+            document.getElementById("input_numero").disabled = true;
+            document.getElementById("btn_numero").disabled = true;
+          }
+          if (data.blocco_numero_eric && "{{ ruolo }}" === "Eric") {
+            document.getElementById("input_numero").disabled = true;
+            document.getElementById("btn_numero").disabled = true;
+          }
+          if (data.blocco_chat) {
+            document.getElementById("input_messaggio").disabled = true;
+            document.getElementById("btn_messaggio").disabled = true;
+          }
+        });
+    }
 
-        function verificaCountdown() {
-            fetch("{{ url_for('verifica_countdown', codice=codice) }}")
-                .then(r => r.json())
-                .then(data => {
-                    if (data.scaduto) {
-                        window.location.href = "/";
-                    } else if (data.countdown !== null) {
-                        document.getElementById("timer").innerText = `Countdown: ${data.countdown} sec`;
-                    }
-                });
-        }
+    function aggiornaCountdown() {
+      fetch("{{ url_for('verifica_countdown', codice=codice) }}")
+        .then(response => response.json())
+        .then(data => {
+          const display = document.getElementById("timerDisplay");
+          if (data.countdown === 0) {
+            display.innerText = "Tempo scaduto. La stanza è stata chiusa.";
+            window.location.href = "/";
+          } else if (data.countdown !== null) {
+            display.innerText = "Countdown: " + data.countdown + " secondi...";
+          } else {
+            display.innerText = "In attesa dei numeri di telefono...";
+          }
+        });
+    }
 
-        setInterval(() => {
-            aggiornaChat();
-            aggiornaNumeri();
-            controllaBlocco();
-            verificaCountdown();
-        }, 1000);
-    </script>
+    setInterval(() => {
+      aggiornaChat();
+      aggiornaNumeri();
+      controllaBlocco();
+      aggiornaCountdown();
+    }, 1000);
+  </script>
 </head>
 <body>
-    <h1>Stanza Virtuale: {{ codice }}</h1>
+  <h1>Stanza Virtuale: {{ codice }}</h1>
+  <p>Stato: <strong>aperta</strong></p>
 
-    <h2>Countdown</h2>
-    <p id="timer">In attesa...</p>
-    <button onclick="fetch('{{ url_for('avvia_countdown', codice=codice) }}', { method: 'POST' })">Avvia Countdown</button>
+  <h2>Chat</h2>
+  <div id="chat">
+    {% for messaggio in chat %}
+      {% if messaggio|length == 2 %}
+        <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <form method="POST">
+    <input type="text" name="messaggio" id="input_messaggio" required>
+    <button type="submit" id="btn_messaggio">Invia</button>
+  </form>
 
-    <h2>Chat</h2>
-    <div id="chat">
-        {% for messaggio in chat %}
-            {% if messaggio|length == 2 %}
-                <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
-            {% endif %}
-        {% endfor %}
-    </div>
-
-    <form method="POST">
-        <input type="text" name="messaggio" id="input_messaggio" required>
-        <button type="submit" id="btn_messaggio">Invia</button>
-    </form>
-
-    <h2>Numeri</h2>
-    <p><strong>Penelope:</strong> <span id="numero_penelope">{{ numero_penelope }}</span></p>
-    <p><strong>Eric:</strong> <span id="numero_eric">{{ numero_eric }}</span></p>
-
-    <form method="POST">
-        <input type="text" name="numero" id="input_numero" required>
-        <button type="submit" id="btn_numero">Invia</button>
-    </form>
-</body>
-</html>
+  <h2>Numeri di telefono</ &#8203;:contentReference[oaicite:0]{index=0}&#8203;
