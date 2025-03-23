@@ -4,48 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stanza Virtuale: {{ codice }}</title>
-    <style>
-        #timerDisplay {
-            font-weight: bold;
-            font-size: 1.2em;
-            margin-top: 1em;
-        }
-    </style>
-</head>
-<body>
-    <h1>Stanza Virtuale: {{ codice }}</h1>
-    <p>Stato: <strong>aperta</strong></p>
-
-    <h2>Chat</h2>
-    <div id="chat">
-        {% for messaggio in chat %}
-            {% if messaggio|length == 2 %}
-                <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
-            {% endif %}
-        {% endfor %}
-    </div>
-
-    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
-        <label for="messaggio">Messaggio:</label>
-        <input type="text" name="messaggio" id="input_messaggio" required>
-        <button type="submit" id="btn_messaggio">Invia</button>
-    </form>
-
-    <h2>Numeri di telefono</h2>
-    <p><strong>Numero di Penelope:</strong> <span id="numero_penelope">{{ numero_penelope if numero_penelope else "Non ancora inserito" }}</span></p>
-    <p><strong>Numero di Eric:</strong> <span id="numero_eric">{{ numero_eric if numero_eric else "Non ancora inserito" }}</span></p>
-
-    <h3>Inserisci il tuo numero</h3>
-    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
-        <label for="numero">Numero:</label>
-        <input type="text" name="numero" id="input_numero" required>
-        <button type="submit" id="btn_numero">Invia</button>
-    </form>
-
-    <h2>Countdown</h2>
-    <p id="timerDisplay">Premi il pulsante per iniziare</p>
-    <button onclick="avviaCountdown()">Avvia Countdown</button>
-
     <script>
         function aggiornaChat() {
             fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
@@ -90,25 +48,16 @@
         }
 
         function aggiornaCountdown() {
-            fetch("{{ url_for('tempo_rimanente', codice=codice) }}")
+            fetch("{{ url_for('verifica_countdown', codice=codice) }}")
                 .then(response => response.json())
                 .then(data => {
-                    const display = document.getElementById("timerDisplay");
-                    if (data.tempo === null) {
-                        display.textContent = "Countdown non ancora avviato";
-                    } else if (data.tempo > 0) {
-                        display.textContent = `Countdown: ${data.tempo} secondi...`;
-                    } else {
-                        display.textContent = "Tempo scaduto! La stanza verrà chiusa.";
-                        window.location.reload();
+                    if (data.countdown !== null && data.countdown >= 0) {
+                        document.getElementById("timerDisplay").innerText = "Tempo rimanente: " + data.countdown + " secondi";
                     }
-                });
-        }
-
-        function avviaCountdown() {
-            fetch("{{ url_for('avvia_countdown', codice=codice) }}", { method: 'POST' })
-                .then(() => {
-                    aggiornaCountdown();
+                    if (data.expired) {
+                        alert("La stanza è scaduta. Verrai reindirizzato alla home.");
+                        window.location.href = "/";
+                    }
                 });
         }
 
@@ -119,5 +68,38 @@
             aggiornaCountdown();
         }, 1000);
     </script>
+</head>
+<body>
+    <h1>Stanza Virtuale: {{ codice }}</h1>
+    <p>Stato: <strong>aperta</strong></p>
+
+    <h2>Chat</h2>
+    <div id="chat">
+        {% for messaggio in chat %}
+            {% if messaggio|length == 2 %}
+                <p><strong>{{ messaggio[0] }}:</strong> {{ messaggio[1] }}</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+        <label for="messaggio">Messaggio:</label>
+        <input type="text" name="messaggio" id="input_messaggio" required>
+        <button type="submit" id="btn_messaggio">Invia</button>
+    </form>
+
+    <h2>Numeri di telefono</h2>
+    <p><strong>Numero di Penelope:</strong> <span id="numero_penelope">{{ numero_penelope if numero_penelope else "Non ancora inserito" }}</span></p>
+    <p><strong>Numero di Eric:</strong> <span id="numero_eric">{{ numero_eric if numero_eric else "Non ancora inserito" }}</span></p>
+
+    <h3>Inserisci il tuo numero</h3>
+    <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+        <label for="numero">Numero:</label>
+        <input type="text" name="numero" id="input_numero" required>
+        <button type="submit" id="btn_numero">Invia</button>
+    </form>
+
+    <h3>Countdown</h3>
+    <p id="timerDisplay">In attesa dell'inizio del countdown...</p>
 </body>
 </html>
