@@ -2,8 +2,8 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>ChatVault: {{ codice }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stanza Virtuale: {{ codice }}</title>
     <style>
         body {
             display: flex;
@@ -12,11 +12,10 @@
         }
         .sidebar {
             width: 220px;
-            background-color: #f2f2f2;
+            background-color: #f0f0f0;
             padding: 20px;
-            border-right: 1px solid #ccc;
             height: 100vh;
-            box-sizing: border-box;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
         .sidebar h3 {
             margin-top: 0;
@@ -25,26 +24,19 @@
             list-style: none;
             padding: 0;
         }
-        .sidebar li {
+        .sidebar ul li {
             margin: 10px 0;
         }
-        .content {
+        .sidebar ul li a {
+            text-decoration: none;
+            color: #333;
+        }
+        .sidebar ul li.unread a {
+            font-weight: bold;
+        }
+        .main {
             flex: 1;
             padding: 20px;
-        }
-        .email-preview {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        #chat p {
-            margin: 4px 0;
-        }
-        #timer {
-            font-size: 1.2em;
-            color: red;
-            margin-top: 10px;
         }
     </style>
     <script>
@@ -52,10 +44,10 @@
             fetch("{{ url_for('aggiorna_chat', codice=codice) }}")
                 .then(response => response.json())
                 .then(data => {
-                    let chatDiv = document.getElementById("chat");
+                    const chatDiv = document.getElementById("chat");
                     chatDiv.innerHTML = "";
                     data.chat.forEach(messaggio => {
-                        let p = document.createElement("p");
+                        const p = document.createElement("p");
                         p.innerHTML = `<strong>${messaggio[0]}:</strong> ${messaggio[1]}`;
                         chatDiv.appendChild(p);
                     });
@@ -90,19 +82,17 @@
                 });
         }
 
-        function aggiornaCountdown() {
+        function verificaCountdown() {
             fetch("{{ url_for('verifica_countdown', codice=codice) }}")
                 .then(response => response.json())
                 .then(data => {
                     if (data.countdown !== null) {
-                        const timer = document.getElementById("timer");
-                        timer.innerText = `Countdown: ${data.countdown} secondi`;
-
+                        document.getElementById("countdown").innerText = `Tempo rimanente: ${data.countdown}s`;
                         if (data.countdown <= 0) {
+                            document.getElementById("countdown").innerText = "Stanza distrutta";
                             setTimeout(() => {
-                                alert("Stanza distrutta");
                                 window.location.href = "{{ url_for('autodistrutta') }}";
-                            }, 1000);
+                            }, 2000);
                         }
                     }
                 });
@@ -112,35 +102,24 @@
             aggiornaChat();
             aggiornaNumeri();
             controllaBlocco();
-            aggiornaCountdown();
-        }, 2000);
+            verificaCountdown();
+        }, 1000);
     </script>
 </head>
 <body>
     <div class="sidebar">
-        <h3>Casella email</h3>
+        <h3>Posta</h3>
         <ul>
-            <li><strong>📥 Posta in arrivo</strong></li>
-            <li>
-    <a href="{{ url_for('email_rossi') }}" style="text-decoration: none; color: inherit;">
-        <div class="email-preview">
-            <strong>Da:</strong> Luca Benedetti<br>
-            <strong>Oggetto:</strong> URGENTE: dobbiamo vederci<br>
-            <strong>Testo:</strong> Pietro mi devi aiutare,
-ieri a mezzogiorno la tua cara amichetta, è venuta al mio ristorante,
-Fortunatamente è arrivata tardi, saranno state le 14.30 e per fortuna la cucina era già chiusa, ero appena andato via e non mi ha trovato, ma c’è mancato davvero un pelo.
-Dobbiamo accelerare la consegna, non voglio correre altri rischi,
-        </div>
-    </a>
-</li>
-            <li>📤 Inviata</li>
-            <li>🗑️ Cestino</li>
-            <li>⚠️ Spam</li>
+            <li class="unread"><a href="{{ url_for('email', codice=codice) }}">Posta in arrivo (1)</a></li>
+            <li><a href="#">Posta inviata</a></li>
+            <li><a href="#">Spam</a></li>
+            <li><a href="#">Cestino</a></li>
         </ul>
     </div>
-
-    <div class="content">
+    <div class="main">
         <h1>Stanza Virtuale: {{ codice }}</h1>
+        <p>Ruolo: {{ ruolo }}</p>
+        <p id="countdown"></p>
 
         <h2>Chat</h2>
         <div id="chat">
@@ -152,20 +131,21 @@ Dobbiamo accelerare la consegna, non voglio correre altri rischi,
         </div>
 
         <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+            <label for="messaggio">Messaggio:</label>
             <input type="text" name="messaggio" id="input_messaggio" required>
             <button type="submit" id="btn_messaggio">Invia</button>
         </form>
 
         <h2>Numeri di telefono</h2>
-        <p><strong>Penelope:</strong> <span id="numero_penelope">{{ numero_penelope or 'Non ancora inserito' }}</span></p>
-        <p><strong>Eric:</strong> <span id="numero_eric">{{ numero_eric or 'Non ancora inserito' }}</span></p>
+        <p><strong>Numero di Penelope:</strong> <span id="numero_penelope">{{ numero_penelope if numero_penelope else "Non ancora inserito" }}</span></p>
+        <p><strong>Numero di Eric:</strong> <span id="numero_eric">{{ numero_eric if numero_eric else "Non ancora inserito" }}</span></p>
 
+        <h3>Inserisci il tuo numero</h3>
         <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
+            <label for="numero">Numero:</label>
             <input type="text" name="numero" id="input_numero" required>
             <button type="submit" id="btn_numero">Invia</button>
         </form>
-
-        <div id="timer"></div>
     </div>
 </body>
 </html>
