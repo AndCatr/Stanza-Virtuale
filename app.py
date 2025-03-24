@@ -161,6 +161,22 @@ def verifica_countdown(codice):
 
     return jsonify({"countdown": int(remaining), "stanza_distrutta": False})
 
+@app.route("/aggiorna_chat/<codice>")
+def aggiorna_chat(codice):
+    conn = sqlite3.connect("stanze.db")
+    c = conn.cursor()
+    c.execute("SELECT chat FROM stanze WHERE codice = ?", (codice,))
+    stanza = c.fetchone()
+    conn.close()
+
+    if stanza and stanza[0]:
+        chat = stanza[0].split("\n")
+        chat_messaggi = [riga.split(": ", 1) for riga in chat if ": " in riga]
+    else:
+        chat_messaggi = []
+
+    return jsonify({"chat": chat_messaggi})
+
 @app.route('/autodistrutta')
 def autodistrutta():
     return """
