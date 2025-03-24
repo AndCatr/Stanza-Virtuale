@@ -2,36 +2,56 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Email da Luca Benedetti</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email - Giovanni Rossi</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            max-width: 600px;
-        }
-        .email-content {
-            border: 1px solid #ddd;
+        body { font-family: Arial, sans-serif; margin: 0; display: flex; }
+        .sidebar {
+            width: 250px;
+            background-color: #f5f5f5;
             padding: 20px;
-            border-radius: 8px;
-            background: #fefefe;
+            height: 100vh;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
-        .email-content h2 {
+        .sidebar h2 {
             margin-top: 0;
+        }
+        .content {
+            padding: 20px;
+            flex-grow: 1;
+        }
+        .email-box {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .back-button {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="email-content">
-        <h2>URGENTE: dobbiamo incontrarci</h2>
-        <p><strong>Da:</strong> Luca Benedetti</p>
-        <p><strong>A:</strong> Te</p>
-        <hr>
-        <p>Pietro mi devi aiutare,
-ieri a mezzogiorno la tua cara amichetta, è venuta al mio ristorante,
-Fortunatamente è arrivata tardi, saranno state le 14.30 e per fortuna la cucina era già chiusa, ero appena andato via e non mi ha trovato, ma c’è mancato davvero un pelo.
-Dobbiamo accelerare la consegna, non voglio correre altri rischi,</p>
+    <div class="sidebar">
+        <h2>Posta</h2>
+        <ul>
+            <li><strong>Posta in arrivo</strong></li>
+            <li>Inviata</li>
+            <li>Spam</li>
+            <li>Cestino</li>
+        </ul>
     </div>
-    <br>
-    <a href="{{ url_for('stanza', codice=codice) }}">⬅️ Torna alla Home</a>
+
+    <div class="content">
+        <h2>Giovanni Rossi - luogo di incontro</h2>
+        <div class="email-box">
+            <p><strong>Da:</strong> Giovanni Rossi</p>
+            <p><strong>Oggetto:</strong> luogo di incontro</p>
+            <p><strong>Messaggio:</strong></p>
+            <p>ciao troviamo là</p>
+        </div>
+        <div class="back-button">
+            <button onclick="window.history.back()">Torna indietro</button>
+        </div>
+    </div>
 </body>
 </html>
