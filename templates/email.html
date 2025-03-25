@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Email da Giovanni Rossi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fcfcfc;
+            margin: 40px;
+        }
+        .email-container {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 30px;
+            max-width: 600px;
+            margin: auto;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+        .email-header {
+            margin-bottom: 20px;
+        }
+        .email-header h2 {
+            margin: 0;
+            color: #444;
+        }
+        .email-meta {
+            font-size: 0.9em;
+            color: #888;
+        }
+        .email-body {
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        .back-btn {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 8px 16px;
+            background-color: #007BFF;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .back-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="email-container">
+    <div class="email-header">
+        <h2>Oggetto: luogo di incontro</h2>
+        <div class="email-meta">Da: Giovanni Rossi</div>
+    </div>
+    <div class="email-body">
+        <p>ciao troviamo là</p>
+    </div>
+    <a href="{{ url_for('stanza', codice=codice) }}" class="back-btn">← Torna alla stanza</a>
+</div>
+
+</body>
+</html>
