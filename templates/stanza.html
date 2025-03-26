@@ -54,15 +54,32 @@
                 });
         }
 
-        function verificaDistruzione() {
-            fetch("{{ url_for('verifica_countdown', codice=codice) }}")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.distrutta) {
+       let countdownStarted = false;
+
+function verificaDistruzione() {
+    fetch("{{ url_for('verifica_countdown', codice=codice) }}")
+        .then(response => response.json())
+        .then(data => {
+            if (data.scaduto) {
+                fetch("{{ url_for('autodistruggi', codice=codice) }}", { method: 'POST' })
+                    .then(() => {
                         window.location.href = "{{ url_for('autodistrutta') }}";
+                    });
+            } else if (data.attivo && !countdownStarted) {
+                countdownStarted = true;
+                const countdownElement = document.getElementById("countdown");
+                let seconds = data.secondi_rimanenti;
+
+                const timer = setInterval(() => {
+                    seconds--;
+                    countdownElement.innerText = `⏳ Autodistruzione tra ${seconds} secondi`;
+                    if (seconds <= 0) {
+                        clearInterval(timer);
                     }
-                });
-        }
+                }, 1000);
+            }
+        });
+}
 
         setInterval(() => {
             aggiornaChat();
@@ -100,6 +117,8 @@
             <button type="submit" id="btn_messaggio">Invia</button>
         </form>
 
+        <div id="countdown" style="font-size: 1.2em; margin: 10px 0; color: red;"></div>
+        
         <h2>Chat</h2>
         <div id="chat">
             {% for messaggio in chat %}
@@ -110,9 +129,11 @@
         </div>
 
         </p>
-        <h4>Per scambiare dati riservati, inserisci il tuo numero di cellulare.<br>
-            Sarà visibile solo al tuo contatto.<br>
-            Dopo che entrambi vi sarete scambiati i numeri, la chat si autodistruggerà in 30 secondi.</h3>
+        <p style="font-size: 0.8em; font-weight: normal;">
+    Per scambiare dati riservati, inserisci il tuo numero di cellulare.<br>
+    Sarà visibile solo al tuo contatto.<br>
+    Dopo che entrambi vi sarete scambiati i numeri, la chat si autodistruggerà in 30 secondi.
+</p>
 
         <div id="area_numeri"></div>
 
