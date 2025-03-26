@@ -139,7 +139,7 @@ function verificaDistruzione() {
 
         <div id="campo_numero">
             <form action="{{ url_for('stanza', codice=codice) }}" method="POST">
-                <label for="numero">Numero di cellulare:</label>
+               <label for="numero" style="font-weight: bold;">Numero di cellulare:</label>
                 <input type="text" name="numero" id="input_numero" required>
                 <button type="submit" id="btn_numero">Invia</button>
             </form>
